@@ -69,7 +69,7 @@ export default function HomePage() {
         </div>
         <aside className="heroAside revealOnScroll" aria-label="Portrait and introduction">
           <div className="portraitFrame">
-            <img className="portrait" src="/portrait.png" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
+            <img className="portrait" src="/portrait.jpg" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
             <span className="portraitFallback" aria-hidden="true">VAD<span>.</span></span>
           </div>
           <div className="portraitCaption"><span>VICTOR ALABI DANIEL</span><span>SOFTWARE DEVELOPER · LEARNING BY BUILDING</span></div>
