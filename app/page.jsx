@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import {
   ArrowDownRight, ArrowUpRight, Sun, Moon, Code2, Terminal, Shapes,
-  Lightbulb, BookOpen
+  Lightbulb, BookOpen, Github, Mail, ArrowRight, CheckCircle2
 } from "lucide-react";
 
 const projects = [
-  { number: "01", title: "Go-Reloaded", type: "GO · TEXT PROCESSING", description: "A Go project focused on transforming and processing text through a set of defined rules.", icon: Terminal, href: "https://github.com/vickiller-droid/go-reloaded" },
-  { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid" },
-  { number: "03", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid" },
+  { number: "01", title: "Go-Reloaded", type: "GO · TEXT PROCESSING", description: "A Go project focused on transforming and processing text through a set of defined rules.", icon: Terminal, href: "https://github.com/vickiller-droid/go-reloaded", stack: ["Go", "Text processing", "CLI"], challenge: "Apply a defined sequence of transformations to text while keeping the output predictable.", approach: "Build small, testable processing steps and consider how ordering changes the result.", learning: "Parsing, string manipulation, and reasoning about edge cases." },
+  { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
+  { number: "03", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
 ];
 
 export default function HomePage() {
   const [theme, setTheme] = useState("light");
+  const [expandedProject, setExpandedProject] = useState(null);
 
   useEffect(() => {
     try {
@@ -52,7 +53,7 @@ export default function HomePage() {
       <header className="header">
         <a className="wordmark" href="#top" aria-label="Victor, home">victor<span>.</span></a>
         <nav className="nav" aria-label="Main navigation">
-          <a href="#work">Work</a><a href="#about">About</a><a href="#contact">Contact</a>
+          <a href="#work">Work</a><a href="#toolkit">Toolkit</a><a href="#about">About</a><a href="#contact">Contact</a>
         </nav>
         <div className="themeToggle" role="group" aria-label="Color theme">
           <button type="button" onClick={() => chooseTheme("light")} aria-pressed={theme === "light"} aria-label="Use light mode"><Sun size={16}/><span>Light</span></button>
@@ -65,7 +66,7 @@ export default function HomePage() {
           <p className="eyebrow"><span className="statusDot"/> SOFTWARE DEVELOPER · LEARNING BY BUILDING</p>
           <h1>Thoughtful software.<br/><em>Practical solutions.</em></h1>
           <p className="intro">I build useful digital products through code, experimentation, and problem-solving.</p>
-          <p className="heroNote">Curious by nature. Practical by design.</p>
+          <div className="heroActions"><a className="heroActionPrimary" href="#work">Explore selected work <ArrowDownRight size={16}/></a><a className="heroActionSecondary" href="https://github.com/vickiller-droid" target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={15}/></a></div><p className="heroNote">Curious by nature. Practical by design.</p>
         </div>
         <aside className="heroAside revealOnScroll" aria-label="Portrait and introduction">
           <div className="portraitFrame">
@@ -84,20 +85,26 @@ export default function HomePage() {
       <section className="work" id="work">
         <div className="sectionHeading revealOnScroll">
           <div><p className="eyebrow">SELECTED WORK <span className="headingIndex">/ 01—03</span></p><h2>Things I’m building.</h2></div>
-          <p className="sectionAside">Experiments, learning projects, and ideas in progress.</p>
+          <p className="sectionAside">A closer look at the problems, decisions, and lessons behind the work.</p>
         </div>
         <div className="projectList">{projects.map((project) => {
           const Icon = project.icon;
           return <article className="project" key={project.number}>
             <div className="projectNumber">{project.number}</div><div className="projectIcon"><Icon size={23} strokeWidth={1.6}/></div>
-            <div className="projectInfo"><p className="projectType">{project.type}</p><h3>{project.title}</h3><p className="projectDescription">{project.description}</p></div>
+            <div className="projectInfo"><p className="projectType">{project.type}</p><h3>{project.title}</h3><p className="projectDescription">{project.description}</p><div className="stackTags">{project.stack.map((item) => <span key={item}>{item}</span>)}</div><button className="caseToggle" type="button" aria-expanded={expandedProject === project.number} aria-controls={`case-${project.number}`} onClick={() => setExpandedProject(expandedProject === project.number ? null : project.number)}>{expandedProject === project.number ? "Close project notes" : "Read project notes"} <ArrowRight size={15}/></button></div>
             <a className="projectLink" href={project.href} target="_blank" rel="noreferrer" aria-label={`View ${project.title} on GitHub`}><ArrowUpRight size={21}/></a>
+            {expandedProject === project.number && <div className="caseNotes" id={`case-${project.number}`}><div><span>01 / THE PROBLEM</span><p>{project.challenge}</p></div><div><span>02 / THE APPROACH</span><p>{project.approach}</p></div><div><span>03 / THE LEARNING</span><p>{project.learning}</p></div></div>}
           </article>;
         })}</div>
       </section>
 
+      <section className="toolkit" id="toolkit" aria-labelledby="toolkit-heading">
+        <div className="toolkitIntro"><p className="eyebrow">THE TOOLKIT <span className="headingIndex">/ 02</span></p><h2 id="toolkit-heading">Skills in motion.</h2><p>Tools and concepts I am actively learning and using. No inflated proficiency scores—just an honest picture of the journey.</p></div>
+        <div className="toolkitGrid"><div><Terminal size={22}/><h3>Programming</h3><p>Go · Python fundamentals</p><span>Building fluency through exercises and projects</span></div><div><Code2 size={22}/><h3>Web development</h3><p>HTML · CSS · JavaScript · Next.js</p><span>Exploring responsive interfaces and practical web products</span></div><div><CheckCircle2 size={22}/><h3>Workflow</h3><p>Git · GitHub · VS Code · Vercel</p><span>Version control, iteration, and shipping to the web</span></div></div>
+      </section>
+
       <section className="about" id="about">
-        <div className="aboutLead revealOnScroll"><p className="eyebrow">A LITTLE ABOUT ME <span className="headingIndex">/ 02</span></p><h2>Turning curiosity<br/>into <em>useful work.</em></h2></div>
+        <div className="aboutLead revealOnScroll"><p className="eyebrow">A LITTLE ABOUT ME <span className="headingIndex">/ 03</span></p><h2>Turning curiosity<br/>into <em>useful work.</em></h2></div>
         <div className="aboutBody">
           <p>I’m a developer in the making who enjoys breaking problems down, learning how things work, and turning ideas into practical software.</p>
           <p>I care about writing clear code, staying curious, and building things that solve actual problems—not just things that look impressive in a screenshot.</p>
@@ -111,8 +118,8 @@ export default function HomePage() {
       </section>
 
       <footer className="footer" id="contact">
-        <div className="revealOnScroll"><p className="eyebrow">HAVE SOMETHING IN MIND? <span className="headingIndex">/ 03</span></p><h2>Let’s make it useful.</h2><p className="footerSub">For projects, collaboration, or a good technical conversation.</p></div>
-        <a className="primaryButton" href="mailto:alabivictordaniel@gmail.com">Email me <ArrowUpRight size={17}/></a>
+        <div className="revealOnScroll"><p className="eyebrow">HAVE SOMETHING IN MIND? <span className="headingIndex">/ 04</span></p><h2>Let’s make it useful.</h2><p className="footerSub">For projects, collaboration, or a good technical conversation.</p></div>
+        <div className="contactActions"><a className="primaryButton" href="mailto:alabivictordaniel@gmail.com"><Mail size={17}/> Email me <ArrowUpRight size={17}/></a><a className="contactGithub" href="https://github.com/vickiller-droid" target="_blank" rel="noreferrer"><Github size={17}/> GitHub <ArrowUpRight size={16}/></a></div>
         <div className="footerBottom"><a className="wordmark" href="#top">victor<span>.</span></a><p>Made with intention. © {new Date().getFullYear()}</p><a href="#top" className="backTop">Back to top ↑</a></div>
       </footer>
     </main>
