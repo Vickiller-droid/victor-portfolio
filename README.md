@@ -1,29 +1,27 @@
 # Victor Alabi Daniel — Portfolio
 
-A standard Next.js portfolio prepared for GitHub and Vercel. It preserves the editorial paper palette, burnt-orange accent, responsive layout, light/dark theme toggle, project list, and scroll reveals.
+A personal portfolio showcasing my software development journey, selected projects, and approach to building practical solutions.
 
-## Before publishing
+## About
 
-1. Add your portrait image as `public/portrait.png`. The original Floot portrait is hosted inside Floot's asset storage and is not automatically transferable to this project. Without it, the page shows a clean initials fallback.
-2. Review the project links in `app/page.jsx`—Ascii-Art and VicFungo currently link to your GitHub profile because their exact repository URLs have not been confirmed.
-3. Review the email address in `app/page.jsx`.
+I'm a software developer learning by building, with an interest in creating thoughtful, useful software and improving through hands-on projects.
 
-## Run locally
+## Projects
 
-Install Node.js 20 or newer, then run:
+* **Go-Reloaded** — A Go project focused on text processing and transformation.
+* **Ascii-Art** — A project exploring ASCII art generation.
+* **VicFungo** — A personal project in development.
 
-```bash
-npm install
-npm run dev
-```
+## Tech Stack
 
-Open `http://localhost:3000`.
+* Go
+* JavaScript
+* React
+* Next.js
+* CSS
 
-## Deploy to Vercel
+## Contact
 
-1. Create a GitHub repository named `victor-portfolio`.
-2. Upload the contents of this folder to the repository (the files should be at the repository root, not nested inside another folder).
-3. In Vercel, choose **Add New → Project**, import `victor-portfolio`, and keep the detected Next.js settings.
-4. Click **Deploy**. Vercel will build the project and provide the live URL.
+Email: [alabivictordaniel@gmail.com](mailto:alabivictordaniel@gmail.com)
 
-The project is configured for Vercel's standard Next.js deployment; no custom server configuration is required.
+GitHub: https://github.com/vickiller-droid
