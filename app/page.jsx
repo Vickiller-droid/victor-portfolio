@@ -31,7 +31,6 @@ const projects = [
 export default function HomePage() {
 
   const cursorRef = useRef(null);
-  const [phonePaused, setPhonePaused] = useState(false);
   const [theme, setTheme] = useState("light");
 
   const [expandedProject, setExpandedProject] = useState(null);
@@ -216,9 +215,9 @@ entry.target.classList.add("isVisible");
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
             <p>A reminder with a reason. Boothy explores how a timely prompt can help you remember what you brought along.</p>
             <p className="boothyHonesty">Currently prototyping and testing the core journey-reminder experience.</p>
-            <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">Explore on GitHub <ArrowUpRight size={16}/></a>
+            <div className="boothyActions"><a className="heroActionPrimary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try Boothy <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={16}/></a></div>
           </div>
-          <figure className={`boothyStage${phonePaused ? ' isPaused' : ''}`}>
+          <figure className="boothyStage">
             <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder shown on a rotating phone mockup">
               <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/><b/></div></div>
               {Array.from({length:16}, (_,i)=><div key={i} className="phoneEdge" style={{transform:`translateZ(${i-7.5}px)`}} aria-hidden="true"/>)}
@@ -229,10 +228,6 @@ entry.target.classList.add("isVisible");
                 <div className="phoneIsland" aria-hidden="true"/>
                 <div className="phoneHome" aria-hidden="true"/>
               </div>
-            </div>
-            <div className="phoneControls">
-              <button type="button" className="phoneMotionToggle" aria-pressed={phonePaused} onClick={()=>setPhonePaused(!phonePaused)}>{phonePaused ? 'Resume 360°' : 'Pause to read'}</button>
-              <button type="button" className="phoneMotionToggle" onClick={()=>setPhonePaused(true)}>Show front</button>
             </div>
             <figcaption>Actual Boothy prototype · Simulated trip</figcaption>
           </figure>
