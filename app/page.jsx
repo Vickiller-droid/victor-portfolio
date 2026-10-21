@@ -190,7 +190,10 @@ entry.target.classList.add("isVisible");
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
             <p>A reminder with a reason. Set a trip, get a belongings prompt two minutes before your estimate, and check your items at arrival.</p>
             <p className="boothyHonesty">Manual ride timer and simulation workflow. Background reliability still needs real-device testing.</p>
-            <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">Explore on GitHub <ArrowUpRight size={16}/></a>
+            <div className="heroActions">
+              <a className="heroActionPrimary" href="https://boothy.floot.app" target="_blank" rel="noopener noreferrer" aria-label="Join the Boothy waitlist (opens in a new tab)">Join the waitlist <ArrowUpRight size={16}/></a>
+              <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noopener noreferrer">View source <ArrowUpRight size={16}/></a>
+            </div>
           </div>
           <BoothyMockup/>
         </article>
