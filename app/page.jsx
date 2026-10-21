@@ -218,18 +218,27 @@ entry.target.classList.add("isVisible");
             <div className="boothyActions"><a className="heroActionPrimary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try Boothy <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={16}/></a></div>
           </div>
           <figure className="boothyStage">
-            <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder shown on a rotating phone mockup">
-              <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/><b/></div></div>
+            <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder preview on a rotating iPhone mockup">
+              <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/><b/></div><img className="phoneAppleMark" src="/previews/apple-mark.svg" width="38" height="46" alt=""/></div>
               {Array.from({length:16}, (_,i)=><div key={i} className="phoneEdge" style={{transform:`translateZ(${i-7.5}px)`}} aria-hidden="true"/>)}
               <div className="phoneSideButton" aria-hidden="true"/>
               <div className="boothyScreen">
-                <img className="boothyCapture" src="/previews/boothy-alert.webp" width="430" height="932" loading="lazy" alt="Actual Boothy simulation showing the two-minute alert, original reason and belongings checklist"/>
+                <div className="boothyDemoScreen" aria-hidden="true">
+                  <div className="demoBrand"><span className="demoBrandIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>boothy<span className="demoBrandDot">.</span></div>
+                  <div className="demoArrival"><span className="demoLiveDot"/> ARRIVING SOON</div>
+                  <div className="demoCountdown">2<span>min</span></div>
+                  <h4>Check your<br/>belongings.</h4>
+                  <div className="demoReason"><span>YOUR REASON</span><p>Don’t leave your power bank on the seat.</p></div>
+                  <div className="demoItems"><span>✓ Phone</span><span>○ Power bank</span><span>○ Earbuds</span></div>
+                  <div className="demoReady">I’m getting ready <span>→</span></div>
+                  <div className="demoBottom"><span>Ride</span><span>Reminders</span><span>Parking</span></div>
+                </div>
                 <div className="phoneHardwareStatus" aria-hidden="true"><span>9:41</span><span>▮▮▮ ▰</span></div>
                 <div className="phoneIsland" aria-hidden="true"/>
                 <div className="phoneHome" aria-hidden="true"/>
               </div>
             </div>
-            <figcaption>Actual Boothy prototype · Simulated trip</figcaption>
+            <figcaption>Boothy · Arrival reminder preview</figcaption>
           </figure>
         </article>
 
