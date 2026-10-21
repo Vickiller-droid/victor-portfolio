@@ -3,6 +3,8 @@
 
 
 import { useEffect, useState } from "react";
+import { BoothyMockup, GoMockup, AsciiMockup, VicFungoMockup } from "./ProjectMockups";
+import "./mockups.css";
 
 import {
 
@@ -22,18 +24,17 @@ const projects = [
 
   { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "A travel-reminder prototype exploring a simple promise: remember your belongings when the journey ends.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
 
-  { number: "04", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
+  { number: "04", title: "VicFungo", type: "HABIT TRACKER · IN DEVELOPMENT", description: "A habit-tracking application with a growth dashboard, identity anchors, habit cards, guided sessions, and progress views.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/habit_tracker", stack: ["React", "TypeScript", "Habit tracking"], challenge: "Turn intentions into deliberate, repeatable daily actions without losing the reason behind them.", approach: "Build a dashboard around habits, first-day quests, identity anchors, and guided practice. The preview shows the actual application with a seeded local guest session.", learning: "Designing a coherent habit workflow and checking the gap between visible interface features and reliable end-to-end behavior. Account sync and external services are not verified by these captures." },
 
 ];
 
 
 
-const portraitSources = ["/portrait.jpg", "/portrait.png", "/portrait.jpeg", "/Portrait.jpg", "/Portrait.png"];
+
 
 export default function HomePage() {
 
-  const [portraitIndex, setPortraitIndex] = useState(0);
-  const [phonePaused, setPhonePaused] = useState(false);
+  const [portraitFailed, setPortraitFailed] = useState(false);
 
   const [theme, setTheme] = useState("light");
 
@@ -133,7 +134,7 @@ entry.target.classList.add("isVisible");
 
       <section className="hero" id="top">
 
-        <div className="heroCopy revealOnScroll">
+        <div className="heroCopy">
 
           <p className="eyebrow"><span className="statusDot"/> SOFTWARE DEVELOPER · LEARNING BY BUILDING</p>
 
@@ -145,11 +146,11 @@ entry.target.classList.add("isVisible");
 
         </div>
 
-        <aside className="heroAside revealOnScroll" aria-label="Portrait and introduction">
+        <aside className="heroAside" aria-label="Portrait and introduction">
 
           <div className="portraitFrame">
 
-            {portraitIndex < portraitSources.length ? <img key={portraitIndex} className="portrait" src={portraitSources[portraitIndex]} alt="Portrait of Victor Alabi Daniel" onError={() => setPortraitIndex((index) => index + 1)}/> : <div className="portraitPlaceholder" role="img" aria-label="Victor Alabi Daniel"><span>VAD<span>.</span></span><small>VICTOR ALABI DANIEL</small></div>}
+            {!portraitFailed ? <img className="portrait" src="/portrait.webp" width="680" height="850" loading="eager" fetchPriority="high" alt="Portrait of Victor Alabi Daniel" onError={() => setPortraitFailed(true)}/> : <div className="portraitPlaceholder" role="img" aria-label="Victor Alabi Daniel">VAD.</div>}
 
 
           </div>
@@ -187,29 +188,11 @@ entry.target.classList.add("isVisible");
             <p className="eyebrow">FEATURED EXPLORATION / BOOTHY</p>
             <span className="boothyStatus">Prototype · In development</span>
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
-            <p>A reminder with a reason. Boothy explores how a timely prompt can help you remember what you brought along.</p>
-            <p className="boothyHonesty">Currently prototyping and testing the core journey-reminder experience.</p>
+            <p>A reminder with a reason. Set a trip, get a belongings prompt two minutes before your estimate, and check your items at arrival.</p>
+            <p className="boothyHonesty">Manual ride timer and simulation workflow. Background reliability still needs real-device testing.</p>
             <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">Explore on GitHub <ArrowUpRight size={16}/></a>
           </div>
-          <figure className={`boothyStage${phonePaused ? " isPaused" : ""}`}>
-            <div className="boothyPhone" role="img" aria-label="Illustrative Boothy reminder screen, not a screenshot of the current application">
-              <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/></div><span>boothy<span>.</span></span><small>Bring it all with you.</small></div>
-              {Array.from({length: 10}, (_, index) => <div key={index} className="phoneEdge" style={{transform: `translateZ(${index - 5}px)`}} aria-hidden="true"/>)}
-              <div className="boothyScreen">
-                <div className="phoneStatus" aria-hidden="true"><span>9:41</span><span>● ▰</span></div>
-                <div className="phoneIsland" aria-hidden="true"/>
-                <div className="phoneBrand">boothy<span>.</span></div>
-                <p className="phoneKicker">A LITTLE NUDGE</p>
-                <h4>Before you<br/>step out.</h4>
-                <p className="phoneMessage">Take a moment to check what you brought along.</p>
-                <div className="phoneReminder"><Lightbulb size={22}/><div><strong>Your belongings</strong><span>Power bank · Earbuds · Bag</span></div></div>
-                <div className="phonePrompt">A quick check.<br/>One less thing left behind.</div>
-                <div className="phoneHome" aria-hidden="true"/>
-              </div>
-            </div>
-            <button className="phoneMotionToggle" type="button" aria-pressed={phonePaused} onClick={() => setPhonePaused((paused) => !paused)}>{phonePaused ? "Resume rotation" : "Pause to read"}</button>
-            <figcaption>Illustrative interface · Actual app screen to follow</figcaption>
-          </figure>
+          <BoothyMockup/>
         </article>
 
         <div className="projectList">{projects.map((project) => {
@@ -223,6 +206,8 @@ entry.target.classList.add("isVisible");
             <div className="projectInfo"><p className="projectType">{project.type}</p><h3>{project.title}</h3><p className="projectDescription">{project.description}</p><div className="stackTags">{project.stack.map((item) => <span key={item}>{item}</span>)}</div><button className="caseToggle" type="button" aria-expanded={expandedProject === project.number} aria-controls={`case-${project.number}`} onClick={() => setExpandedProject(expandedProject === project.number ? null : project.number)}>{expandedProject === project.number ? "Close project notes" : "Read project notes"} <ArrowRight size={15}/></button></div>
 
             {project.href ? <a className="projectLink" href={project.href} target="_blank" rel="noreferrer" aria-label={`View ${project.title} on GitHub`}><ArrowUpRight size={21}/></a> : <span className="projectLink projectLinkInactive" aria-label="Boothy has no public repository yet"><Lightbulb size={19}/></span>}
+
+            {project.number !== "03" && <div className="projectVisual">{project.number === "01" ? <GoMockup/> : project.number === "02" ? <AsciiMockup/> : <VicFungoMockup/>}</div>}
 
             {expandedProject === project.number && <div className="caseNotes" id={`case-${project.number}`}><div><span>01 / THE PROBLEM</span><p>{project.challenge}</p></div><div><span>02 / THE APPROACH</span><p>{project.approach}</p></div><div><span>03 / THE LEARNING</span><p>{project.learning}</p></div></div>}
 
