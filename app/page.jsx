@@ -14,13 +14,15 @@ import {
 
 
 
+const boothyWaitlistHref = "mailto:alabivictordaniel@gmail.com?subject=Boothy%20waitlist&body=Hi%20Victor%2C%0A%0APlease%20add%20me%20to%20the%20Boothy%20waitlist%20and%20email%20me%20when%20it%20launches.%0A%0AMy%20name%3A%20";
+
 const projects = [
 
   { number: "01", title: "Go-Reloaded", type: "GO · TEXT PROCESSING", description: "A Go project focused on transforming and processing text through a set of defined rules.", icon: Terminal, href: "https://github.com/vickiller-droid/go-reloaded", stack: ["Go", "Text processing", "CLI"], challenge: "Apply a defined sequence of transformations to text while keeping the output predictable.", approach: "Build small, testable processing steps and consider how ordering changes the result.", learning: "Parsing, string manipulation, and reasoning about edge cases." },
 
   { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid/ascii-art", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
 
-  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "A travel-reminder prototype exploring a simple promise: remember your belongings when the journey ends.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
+  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
 
   { number: "04", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
 
@@ -213,9 +215,10 @@ entry.target.classList.add("isVisible");
             <p className="eyebrow">FEATURED EXPLORATION / BOOTHY</p>
             <span className="boothyStatus">Prototype · In development</span>
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
-            <p>A reminder with a reason. Boothy explores how a timely prompt can help you remember what you brought along.</p>
-            <p className="boothyHonesty">Currently prototyping and testing the core journey-reminder experience.</p>
-            <div className="boothyActions"><a className="heroActionPrimary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try Boothy <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={16}/></a></div>
+            <p>Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.</p>
+            <p className="boothyHonesty">Not ready yet. Join the waitlist to hear when it launches.</p>
+            <div className="boothyActions"><a className="heroActionPrimary" href={boothyWaitlistHref} aria-label="Join the Boothy waitlist by email">Join the waitlist <Mail size={16}/></a><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
+            <p className="boothyWaitlistNote">Join by email · <a href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={12}/></a></p>
           </div>
           <figure className="boothyStage">
             <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder preview on a rotating iPhone mockup">

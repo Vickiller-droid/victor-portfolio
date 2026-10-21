@@ -116,3 +116,12 @@ body.dark{color-scheme:dark;--background:#211F1C;--foreground:#F4EFE8;--surface:
 @media(max-width:700px){.boothyFeature{grid-template-columns:1fr;gap:24px}.boothyStage{padding:12px 0}.boothyCopy h3{font-size:2.6rem}}
 @media(max-width:360px){.boothyPhone{width:224px;height:472px}}
 @media(prefers-reduced-motion:reduce){.boothyPhone{animation:none;transform:none;will-change:auto}.cursorHalo{display:none}}
+
+/* Boothy launch interest: email signup and an optional working prototype. */
+.boothyCopy .boothyWaitlistNote{font-size:.75rem;line-height:1.6;color:var(--muted-foreground);margin:12px 0 0}.boothyWaitlistNote a{display:inline-flex;gap:3px;align-items:center;color:var(--primary);text-underline-offset:3px;padding:5px 0}
+
+/* Keep the development label steady; pulse only its small status dot. */
+.boothyStatus{display:inline-flex;align-items:center;gap:8px}
+.boothyStatus::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;animation:boothyDevelopmentPulse 3.4s ease-in-out infinite}
+@keyframes boothyDevelopmentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(198,93,59,.22)}55%{opacity:.6;box-shadow:0 0 0 5px rgba(198,93,59,0)}}
+@media(prefers-reduced-motion:reduce){.boothyStatus::before{animation:none}}
