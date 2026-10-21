@@ -18,9 +18,11 @@ const projects = [
 
   { number: "01", title: "Go-Reloaded", type: "GO · TEXT PROCESSING", description: "A Go project focused on transforming and processing text through a set of defined rules.", icon: Terminal, href: "https://github.com/vickiller-droid/go-reloaded", stack: ["Go", "Text processing", "CLI"], challenge: "Apply a defined sequence of transformations to text while keeping the output predictable.", approach: "Build small, testable processing steps and consider how ordering changes the result.", learning: "Parsing, string manipulation, and reasoning about edge cases." },
 
-  { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
+  { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid/ascii-art", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
 
-  { number: "03", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
+  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "A travel-reminder prototype exploring a simple promise: remember your belongings when the journey ends.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
+
+  { number: "04", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
 
 ];
 
@@ -142,7 +144,7 @@ entry.target.classList.add("isVisible");
 
           <div className="portraitFrame">
 
-            <img className="portrait" src="/portrait.jpg" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
+            <img className="portrait" src="/portrait.png" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
 
             <span className="portraitFallback" aria-hidden="true">VAD<span>.</span></span>
 
@@ -170,11 +172,38 @@ entry.target.classList.add("isVisible");
 
         <div className="sectionHeading revealOnScroll">
 
-          <div><p className="eyebrow">SELECTED WORK <span className="headingIndex">/ 01—03</span></p><h2>Things I’m building.</h2></div>
+          <div><p className="eyebrow">SELECTED WORK <span className="headingIndex">/ 01—04</span></p><h2>Things I’m building.</h2></div>
 
           <p className="sectionAside">A closer look at the problems, decisions, and lessons behind the work.</p>
 
         </div>
+
+        <article className="boothyFeature" aria-labelledby="boothy-title">
+          <div className="boothyCopy">
+            <p className="eyebrow">FEATURED EXPLORATION / BOOTHY</p>
+            <span className="boothyStatus">Prototype · In development</span>
+            <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
+            <p>A reminder with a reason. Boothy explores how a timely prompt can help you remember what you brought along.</p>
+            <p className="boothyHonesty">Currently prototyping and testing the core journey-reminder experience.</p>
+            <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">Explore on GitHub <ArrowUpRight size={16}/></a>
+          </div>
+          <figure className="boothyStage">
+            <div className="boothyPhone" role="img" aria-label="Illustrative Boothy reminder screen, not a screenshot of the current application">
+              <div className="boothyScreen">
+                <div className="phoneStatus" aria-hidden="true"><span>9:41</span><span>● ▰</span></div>
+                <div className="phoneIsland" aria-hidden="true"/>
+                <div className="phoneBrand">boothy<span>.</span></div>
+                <p className="phoneKicker">A LITTLE NUDGE</p>
+                <h4>Before you<br/>step out.</h4>
+                <p className="phoneMessage">Take a moment to check what you brought along.</p>
+                <div className="phoneReminder"><Lightbulb size={22}/><div><strong>Your belongings</strong><span>Power bank · Earbuds · Bag</span></div></div>
+                <div className="phonePrompt">A quick check.<br/>One less thing left behind.</div>
+                <div className="phoneHome" aria-hidden="true"/>
+              </div>
+            </div>
+            <figcaption>Illustrative interface · Actual app screen to follow</figcaption>
+          </figure>
+        </article>
 
         <div className="projectList">{projects.map((project) => {
 
@@ -186,7 +215,7 @@ entry.target.classList.add("isVisible");
 
             <div className="projectInfo"><p className="projectType">{project.type}</p><h3>{project.title}</h3><p className="projectDescription">{project.description}</p><div className="stackTags">{project.stack.map((item) => <span key={item}>{item}</span>)}</div><button className="caseToggle" type="button" aria-expanded={expandedProject === project.number} aria-controls={`case-${project.number}`} onClick={() => setExpandedProject(expandedProject === project.number ? null : project.number)}>{expandedProject === project.number ? "Close project notes" : "Read project notes"} <ArrowRight size={15}/></button></div>
 
-            <a className="projectLink" href={project.href} target="_blank" rel="noreferrer" aria-label={`View ${project.title} on GitHub`}><ArrowUpRight size={21}/></a>
+            {project.href ? <a className="projectLink" href={project.href} target="_blank" rel="noreferrer" aria-label={`View ${project.title} on GitHub`}><ArrowUpRight size={21}/></a> : <span className="projectLink projectLinkInactive" aria-label="Boothy has no public repository yet"><Lightbulb size={19}/></span>}
 
             {expandedProject === project.number && <div className="caseNotes" id={`case-${project.number}`}><div><span>01 / THE PROBLEM</span><p>{project.challenge}</p></div><div><span>02 / THE APPROACH</span><p>{project.approach}</p></div><div><span>03 / THE LEARNING</span><p>{project.learning}</p></div></div>}
 
