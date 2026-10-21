@@ -28,7 +28,12 @@ const projects = [
 
 
 
+const portraitSources = ["/portrait.jpg", "/portrait.png", "/portrait.jpeg", "/Portrait.jpg", "/Portrait.png"];
+
 export default function HomePage() {
+
+  const [portraitIndex, setPortraitIndex] = useState(0);
+  const [phonePaused, setPhonePaused] = useState(false);
 
   const [theme, setTheme] = useState("light");
 
@@ -144,9 +149,8 @@ entry.target.classList.add("isVisible");
 
           <div className="portraitFrame">
 
-            <img className="portrait" src="/portrait.png" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
+            {portraitIndex < portraitSources.length ? <img key={portraitIndex} className="portrait" src={portraitSources[portraitIndex]} alt="Portrait of Victor Alabi Daniel" onError={() => setPortraitIndex((index) => index + 1)}/> : <div className="portraitPlaceholder" role="img" aria-label="Victor Alabi Daniel"><span>VAD<span>.</span></span><small>VICTOR ALABI DANIEL</small></div>}
 
-            <span className="portraitFallback" aria-hidden="true">VAD<span>.</span></span>
 
           </div>
 
@@ -187,8 +191,10 @@ entry.target.classList.add("isVisible");
             <p className="boothyHonesty">Currently prototyping and testing the core journey-reminder experience.</p>
             <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">Explore on GitHub <ArrowUpRight size={16}/></a>
           </div>
-          <figure className="boothyStage">
+          <figure className={`boothyStage${phonePaused ? " isPaused" : ""}`}>
             <div className="boothyPhone" role="img" aria-label="Illustrative Boothy reminder screen, not a screenshot of the current application">
+              <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/></div><span>boothy<span>.</span></span><small>Bring it all with you.</small></div>
+              {Array.from({length: 10}, (_, index) => <div key={index} className="phoneEdge" style={{transform: `translateZ(${index - 5}px)`}} aria-hidden="true"/>)}
               <div className="boothyScreen">
                 <div className="phoneStatus" aria-hidden="true"><span>9:41</span><span>● ▰</span></div>
                 <div className="phoneIsland" aria-hidden="true"/>
@@ -201,6 +207,7 @@ entry.target.classList.add("isVisible");
                 <div className="phoneHome" aria-hidden="true"/>
               </div>
             </div>
+            <button className="phoneMotionToggle" type="button" aria-pressed={phonePaused} onClick={() => setPhonePaused((paused) => !paused)}>{phonePaused ? "Resume rotation" : "Pause to read"}</button>
             <figcaption>Illustrative interface · Actual app screen to follow</figcaption>
           </figure>
         </article>
