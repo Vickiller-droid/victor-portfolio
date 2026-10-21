@@ -69,3 +69,4 @@ body.dark{color-scheme:dark;--background:#211F1C;--foreground:#F4EFE8;--surface:
 
 /* A concept-stage project has no repository link yet. */
 .projectLinkInactive{opacity:.48;cursor:default;pointer-events:none}
+
