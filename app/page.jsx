@@ -2,9 +2,7 @@
 
 
 
-import { useEffect, useState } from "react";
-import { BoothyMockup, GoMockup, AsciiMockup, VicFungoMockup } from "./ProjectMockups";
-import "./mockups.css";
+import { useEffect, useState, useRef } from "react";
 
 import {
 
@@ -16,26 +14,25 @@ import {
 
 
 
+const boothyWaitlistHref = "https://boothy.floot.app";
+
 const projects = [
 
   { number: "01", title: "Go-Reloaded", type: "GO · TEXT PROCESSING", description: "A Go project focused on transforming and processing text through a set of defined rules.", icon: Terminal, href: "https://github.com/vickiller-droid/go-reloaded", stack: ["Go", "Text processing", "CLI"], challenge: "Apply a defined sequence of transformations to text while keeping the output predictable.", approach: "Build small, testable processing steps and consider how ordering changes the result.", learning: "Parsing, string manipulation, and reasoning about edge cases." },
 
   { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid/ascii-art", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
 
-  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "A travel-reminder prototype exploring a simple promise: remember your belongings when the journey ends.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
+  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
 
-  { number: "04", title: "VicFungo", type: "HABIT TRACKER · IN DEVELOPMENT", description: "A habit-tracking application with a growth dashboard, identity anchors, habit cards, guided sessions, and progress views.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/habit_tracker", stack: ["React", "TypeScript", "Habit tracking"], challenge: "Turn intentions into deliberate, repeatable daily actions without losing the reason behind them.", approach: "Build a dashboard around habits, first-day quests, identity anchors, and guided practice. The preview shows the actual application with a seeded local guest session.", learning: "Designing a coherent habit workflow and checking the gap between visible interface features and reliable end-to-end behavior. Account sync and external services are not verified by these captures." },
+  { number: "04", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
 
 ];
 
 
 
-
-
 export default function HomePage() {
 
-  const [portraitFailed, setPortraitFailed] = useState(false);
-
+  const cursorRef = useRef(null);
   const [theme, setTheme] = useState("light");
 
   const [expandedProject, setExpandedProject] = useState(null);
@@ -86,6 +83,34 @@ entry.target.classList.add("isVisible");
 
 
 
+  useEffect(() => {
+    const media = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+    const cursor = cursorRef.current;
+    let frame = 0;
+    const move = (event) => {
+      if (!media.matches || event.pointerType === 'touch') return;
+      cancelAnimationFrame(frame);
+      const {clientX, clientY, target} = event;
+      frame = requestAnimationFrame(() => {
+        cursor.style.transform = `translate3d(${clientX}px,${clientY}px,0)`;
+        cursor.classList.add('isVisible');
+        cursor.classList.toggle('isInteractive', Boolean(target.closest('a,button,summary')));
+      });
+    };
+    const hide = () => cursor.classList.remove('isVisible');
+    window.addEventListener('pointermove', move, {passive:true});
+    document.documentElement.addEventListener('pointerleave', hide);
+    window.addEventListener('blur', hide);
+    media.addEventListener('change', hide);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', move);
+      document.documentElement.removeEventListener('pointerleave', hide);
+      window.removeEventListener('blur', hide);
+      media.removeEventListener('change', hide);
+    };
+  }, []);
+
   function chooseTheme(next) {
 
     setTheme(next);
@@ -109,6 +134,7 @@ entry.target.classList.add("isVisible");
   return (
 
     <main className="site">
+      <div ref={cursorRef} className="cursorHalo" aria-hidden="true"><span/></div>
 
       <header className="header">
 
@@ -134,7 +160,7 @@ entry.target.classList.add("isVisible");
 
       <section className="hero" id="top">
 
-        <div className="heroCopy">
+        <div className="heroCopy revealOnScroll">
 
           <p className="eyebrow"><span className="statusDot"/> SOFTWARE DEVELOPER · LEARNING BY BUILDING</p>
 
@@ -146,12 +172,13 @@ entry.target.classList.add("isVisible");
 
         </div>
 
-        <aside className="heroAside" aria-label="Portrait and introduction">
+        <aside className="heroAside revealOnScroll" aria-label="Portrait and introduction">
 
           <div className="portraitFrame">
 
-            {!portraitFailed ? <img className="portrait" src="/portrait.webp" width="680" height="850" loading="eager" fetchPriority="high" alt="Portrait of Victor Alabi Daniel" onError={() => setPortraitFailed(true)}/> : <div className="portraitPlaceholder" role="img" aria-label="Victor Alabi Daniel">VAD.</div>}
+            <img className="portrait" src="/portrait.webp" width="680" height="850" loading="eager" fetchPriority="high" alt="Portrait of Victor Alabi Daniel" onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement.classList.add("portraitMissing"); }}/>
 
+            <span className="portraitFallback" aria-hidden="true">VAD<span>.</span></span>
 
           </div>
 
@@ -188,14 +215,34 @@ entry.target.classList.add("isVisible");
             <p className="eyebrow">FEATURED EXPLORATION / BOOTHY</p>
             <span className="boothyStatus">Prototype · In development</span>
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
-            <p>A reminder with a reason. Set a trip, get a belongings prompt two minutes before your estimate, and check your items at arrival.</p>
-            <p className="boothyHonesty">Manual ride timer and simulation workflow. Background reliability still needs real-device testing.</p>
-            <div className="heroActions">
-              <a className="heroActionPrimary" href="https://boothy.floot.app" target="_blank" rel="noopener noreferrer" aria-label="Join the Boothy waitlist (opens in a new tab)">Join the waitlist <ArrowUpRight size={16}/></a>
-              <a className="heroActionSecondary" href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noopener noreferrer">View source <ArrowUpRight size={16}/></a>
-            </div>
+            <p>Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.</p>
+            <p className="boothyHonesty">Not ready yet. Join the waitlist to hear when it launches.</p>
+            <div className="boothyActions"><a className="heroActionPrimary" href={boothyWaitlistHref} target="_blank" rel="noopener noreferrer" aria-label="Join the Boothy waitlist (opens in a new tab)">Join the waitlist <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
+            <p className="boothyWaitlistNote">Get notified when Boothy launches · <a href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={12}/></a></p>
           </div>
-          <BoothyMockup/>
+          <figure className="boothyStage">
+            <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder preview on a rotating iPhone mockup">
+              <div className="phoneBack" aria-hidden="true"><div className="phoneCameras"><i/><i/><i/><b/></div><img className="phoneAppleMark" src="/previews/apple-mark.svg" width="38" height="46" alt=""/></div>
+              {Array.from({length:16}, (_,i)=><div key={i} className="phoneEdge" style={{transform:`translateZ(${i-7.5}px)`}} aria-hidden="true"/>)}
+              <div className="phoneSideButton" aria-hidden="true"/>
+              <div className="boothyScreen">
+                <div className="boothyDemoScreen" aria-hidden="true">
+                  <div className="demoBrand"><span className="demoBrandIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>boothy<span className="demoBrandDot">.</span></div>
+                  <div className="demoArrival"><span className="demoLiveDot"/> ARRIVING SOON</div>
+                  <div className="demoCountdown">2<span>min</span></div>
+                  <h4>Check your<br/>belongings.</h4>
+                  <div className="demoReason"><span>YOUR REASON</span><p>Don’t leave your power bank on the seat.</p></div>
+                  <div className="demoItems"><span>✓ Phone</span><span>○ Power bank</span><span>○ Earbuds</span></div>
+                  <div className="demoReady">I’m getting ready <span>→</span></div>
+                  <div className="demoBottom"><span>Ride</span><span>Reminders</span><span>Parking</span></div>
+                </div>
+                <div className="phoneHardwareStatus" aria-hidden="true"><span>9:41</span><span>▮▮▮ ▰</span></div>
+                <div className="phoneIsland" aria-hidden="true"/>
+                <div className="phoneHome" aria-hidden="true"/>
+              </div>
+            </div>
+            <figcaption>Boothy · Arrival reminder preview</figcaption>
+          </figure>
         </article>
 
         <div className="projectList">{projects.map((project) => {
@@ -209,8 +256,6 @@ entry.target.classList.add("isVisible");
             <div className="projectInfo"><p className="projectType">{project.type}</p><h3>{project.title}</h3><p className="projectDescription">{project.description}</p><div className="stackTags">{project.stack.map((item) => <span key={item}>{item}</span>)}</div><button className="caseToggle" type="button" aria-expanded={expandedProject === project.number} aria-controls={`case-${project.number}`} onClick={() => setExpandedProject(expandedProject === project.number ? null : project.number)}>{expandedProject === project.number ? "Close project notes" : "Read project notes"} <ArrowRight size={15}/></button></div>
 
             {project.href ? <a className="projectLink" href={project.href} target="_blank" rel="noreferrer" aria-label={`View ${project.title} on GitHub`}><ArrowUpRight size={21}/></a> : <span className="projectLink projectLinkInactive" aria-label="Boothy has no public repository yet"><Lightbulb size={19}/></span>}
-
-            {project.number !== "03" && <div className="projectVisual">{project.number === "01" ? <GoMockup/> : project.number === "02" ? <AsciiMockup/> : <VicFungoMockup/>}</div>}
 
             {expandedProject === project.number && <div className="caseNotes" id={`case-${project.number}`}><div><span>01 / THE PROBLEM</span><p>{project.challenge}</p></div><div><span>02 / THE APPROACH</span><p>{project.approach}</p></div><div><span>03 / THE LEARNING</span><p>{project.learning}</p></div></div>}
 
