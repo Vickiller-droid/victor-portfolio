@@ -16,56 +16,23 @@
   <h1>Connect signup notifications.</h1>
   <p>This requests FormSubmit activation for <strong>alabivictordaniel@gmail.com</strong> from Victor’s live portfolio.</p>
   <p>After activation, the same button sends a delivery test. It does not add a subscriber to the waitlist.</p>
-  <form id="setup-form"><button type="submit">Send setup test</button></form>
+  <form id="setup-form" action="https://formsubmit.co/alabivictordaniel@gmail.com" method="POST">
+    <input type="hidden" name="name" value="Boothy waitlist delivery setup">
+    <input type="hidden" name="email" value="alabivictordaniel@gmail.com">
+    <input type="hidden" name="message" value="Delivery test from Victor’s live portfolio. This is not a subscriber signup.">
+    <input type="hidden" name="_subject" value="Boothy waitlist: live portfolio delivery test">
+    <input type="hidden" name="_url" value="https://victor-portfolio-olive.vercel.app/">
+    <input type="hidden" name="_template" value="table">
+    <button type="submit">Send setup test</button>
+  </form>
   <div id="result" role="status" aria-live="polite">Ready.</div>
   <p><a href="/">Back to the portfolio</a></p>
 </main>
 <script>
-  const form=document.getElementById('setup-form');
-  const button=form.querySelector('button');
-  const result=document.getElementById('result');
   if(location.origin!=='https://victor-portfolio-olive.vercel.app'){
-    button.disabled=true;
-    result.textContent='Open this page on the live portfolio address to request the correct activation.';
+    document.querySelector('button').disabled=true;
+    document.getElementById('result').textContent='Open this page on the live portfolio address to request the correct activation.';
   }
-  form.addEventListener('submit',async event=>{
-    event.preventDefault();
-    if(button.disabled)return;
-    button.disabled=true;
-    result.textContent='Contacting FormSubmit…';
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),120000);
-    try{
-      const response=await fetch('https://formsubmit.co/ajax/alabivictordaniel@gmail.com',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Accept':'application/json'},
-        signal:controller.signal,
-        body:JSON.stringify({
-          name:'Boothy waitlist delivery setup',
-          email:'alabivictordaniel@gmail.com',
-          message:'Delivery test from Victor’s live portfolio. This is not a subscriber signup.',
-          _subject:'Boothy waitlist: live portfolio delivery test',
-          _url:'https://victor-portfolio-olive.vercel.app/',
-          _template:'table',
-          _honey:''
-        })
-      });
-      const data=await response.json();
-      const accepted=response.ok&&(data.success===true||data.success==='true');
-      if(/activat/i.test(String(data.message||''))){
-        result.textContent='Activation needed. FormSubmit says: '+data.message+'\n\nOpen the new FormSubmit email naming victor-portfolio-olive.vercel.app, then click Activate Form.';
-      }else if(accepted){
-        result.textContent='FormSubmit accepted the delivery test. Check alabivictordaniel@gmail.com for “Boothy waitlist: live portfolio delivery test”.';
-      }else{
-        result.textContent='The test was not accepted. '+String(data.message||'Please try again later.');
-      }
-    }catch(error){
-      result.textContent=error.name==='AbortError'?'The request timed out. Delivery has not been confirmed.':'The request could not be completed. Delivery has not been confirmed.';
-    }finally{
-      clearTimeout(timeout);
-      button.disabled=false;
-    }
-  });
 </script>
 </body>
 </html>
