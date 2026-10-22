@@ -120,8 +120,51 @@ body.dark{color-scheme:dark;--background:#211F1C;--foreground:#F4EFE8;--surface:
 /* Boothy launch interest: email signup and an optional working prototype. */
 .boothyCopy .boothyWaitlistNote{font-size:.75rem;line-height:1.6;color:var(--muted-foreground);margin:12px 0 0}.boothyWaitlistNote a{display:inline-flex;gap:3px;align-items:center;color:var(--primary);text-underline-offset:3px;padding:5px 0}
 
-/* Keep the development label steady; pulse only its small status dot. */
-.boothyStatus{display:inline-flex;align-items:center;gap:8px}
-.boothyStatus::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;animation:boothyDevelopmentPulse 3.4s ease-in-out infinite}
-@keyframes boothyDevelopmentPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(198,93,59,.22)}55%{opacity:.6;box-shadow:0 0 0 5px rgba(198,93,59,0)}}
-@media(prefers-reduced-motion:reduce){.boothyStatus::before{animation:none}}
+/* A quiet, visible pulse on the complete development badge. */
+.boothyStatus{display:inline-flex;align-items:center;gap:8px;animation:boothyBadgePulse 2.8s ease-in-out infinite}
+.boothyStatus::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;animation:boothyDevelopmentPulse 2.8s ease-in-out infinite}
+@keyframes boothyBadgePulse{0%,100%{opacity:1;border-color:var(--primary)}50%{opacity:.65;border-color:var(--border)}}
+@keyframes boothyDevelopmentPulse{0%,100%{box-shadow:0 0 0 0 rgba(198,93,59,.3)}50%{box-shadow:0 0 0 5px rgba(198,93,59,0)}}
+
+/* Keep text sizing consistent and remove the empty About column. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.about{grid-template-columns:minmax(0,1fr);row-gap:26px}
+.aboutBody{align-self:start;max-width:720px}
+.aboutBody p{font-size:clamp(1rem,1.4vw,1.15rem);line-height:1.75}
+.values{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.values>div{min-width:0;align-items:flex-start}
+.values svg{flex-shrink:0;margin-top:3px}
+.values h3{font-size:1.05rem;line-height:1.4}
+.values p{font-size:.95rem;line-height:1.65;max-width:none}
+@media(max-width:900px){.values{grid-template-columns:1fr;gap:20px}.values p{font-size:1rem}.values h3{font-size:1.1rem}}
+
+/* Native signup dialog: visitors remain on the portfolio. */
+body.waitlistOpen{overflow:hidden}
+.boothyActions button{border:0;cursor:pointer;font-family:inherit;min-height:44px}
+.waitlistDialog{position:fixed;inset:0;width:min(520px,calc(100% - 32px));max-height:calc(100dvh - 32px);margin:auto;padding:38px 30px 30px;border:1px solid var(--border);border-radius:14px;background:var(--background);color:var(--foreground);box-shadow:0 24px 80px #0003;overflow-y:auto;overscroll-behavior:contain}
+.waitlistDialog::backdrop{background:rgba(20,18,16,.6)}
+.waitlistDialog .eyebrow{font-size:.69rem;margin:0 34px 16px 0}
+.waitlistDialog h2{font-family:var(--font-family-display);font-size:clamp(2rem,5vw,2.65rem);font-weight:500;letter-spacing:-.04em;line-height:1.08;margin:0 0 16px}
+.waitlistDialog>p:not(.eyebrow){font-size:1rem;line-height:1.6;color:var(--muted-foreground);margin:0 0 26px}
+.waitlistClose{position:absolute;right:13px;top:13px;display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--border);border-radius:50%;background:var(--card);color:var(--foreground);cursor:pointer}
+.waitlistForm{display:flex;flex-direction:column;gap:12px}
+.waitlistForm>label:first-child{font-size:.95rem;font-weight:600}
+.waitlistForm>input{width:100%;min-height:50px;padding:13px 14px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--foreground);font:400 1rem var(--font-family-base)}
+.waitlistForm>input:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.waitlistForm>input::placeholder{color:var(--muted-foreground)}
+.waitlistConsent{display:flex;align-items:flex-start;gap:10px;font-size:.95rem;line-height:1.5;margin:6px 0 9px;cursor:pointer}
+.waitlistConsent input{flex:none;width:20px;height:20px;accent-color:var(--primary);margin:1px 0 0}
+.waitlistSubmit{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;padding:13px 16px;border:0;border-radius:6px;background:#A74223;color:#fff;font:600 1rem var(--font-family-base);cursor:pointer}
+.waitlistSubmit:disabled{cursor:wait;opacity:.7}
+.waitlistPrivacy{font-size:.82rem;line-height:1.6;color:var(--muted-foreground);margin:3px 0 0}
+.waitlistPrivacy a{color:var(--foreground);text-underline-offset:3px}
+.waitlistHoneypot{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.waitlistError{font-size:.9rem;line-height:1.5;color:var(--primary);margin:0 0 6px}
+.waitlistSuccess{padding-top:3px}
+.waitlistSuccess>svg{color:var(--primary)}
+.waitlistSuccess h3{font-size:1.3rem;line-height:1.35;margin:13px 0 9px}
+.waitlistSuccess p{font-size:1rem;line-height:1.6;color:var(--muted-foreground);margin:0 0 24px}
+.waitlistSpinner{animation:waitlistSpin 1s linear infinite}
+@keyframes waitlistSpin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.waitlistDialog{padding:38px 22px 24px}}
+@media(prefers-reduced-motion:reduce){.boothyStatus,.boothyStatus::before,.waitlistSpinner{animation:none}}
