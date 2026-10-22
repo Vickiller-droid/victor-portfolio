@@ -14,51 +14,6 @@ import {
 
 
 
-async function submitBoothyWaitlist(input, signal) {
-  const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254
-    || input.consent !== true || (input.website !== undefined && input.website !== "")) {
-    throw new Error("Invalid signup.");
-  }
-
-  // Keep a durable backup before sending the owner notification.
-  const savedResponse = await fetch("/api/boothy-waitlist", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, consent: true, website: "" }),
-    signal,
-  });
-  const saved = await savedResponse.json();
-  if (!savedResponse.ok || saved?.saved !== true) {
-    throw new Error("Signup could not be saved.");
-  }
-
-  // FormSubmit's documented AJAX flow keeps the visitor on the portfolio.
-  // Only Victor receives this notification; no email is sent to the subscriber.
-  const deliveryResponse = await fetch("https://formsubmit.co/ajax/alabivictordaniel@gmail.com", {
-    method: "POST",
-    headers: { "Accept": "application/json" },
-    body: new URLSearchParams({
-      name: "Boothy waitlist",
-      email,
-      consent: "Email me when Boothy launches.",
-      message: "A visitor joined the Boothy waitlist through your portfolio.",
-      _subject: "Boothy waitlist: new signup",
-      _url: "https://victor-portfolio-olive.vercel.app/",
-      _template: "table",
-      _honey: "",
-    }),
-    signal,
-  });
-  const delivery = await deliveryResponse.json();
-  const accepted = delivery?.success === true || delivery?.success === "true";
-  const needsActivation = /activat|verify|verification/i.test(String(delivery?.message || ""));
-  if (!deliveryResponse.ok || !accepted || needsActivation) {
-    throw new Error("Signup notification was not accepted.");
-  }
-  return { saved: true };
-}
-
 const boothyDescription = "Boothy reminds you to take your things before you step out of a cab, bus or keke.";
 const boothyStory = "When you’re paying the driver, gathering your bags or rushing off, it’s easy to overlook something. I’ve left things behind before, so I’m building it to help you avoid the same.";
 
@@ -102,19 +57,28 @@ export default function HomePage() {
     setWaitlistStatus("saving");
     setWaitlistError("");
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 75000);
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      await submitBoothyWaitlist({
-        email: String(fields.get("email") || "").trim(),
-        consent: fields.get("consent") === "on",
-        website: String(fields.get("website") || ""),
-      }, controller.signal);
+      const response = await fetch("/api/boothy-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: String(fields.get("email") || "").trim(),
+          consent: fields.get("consent") === "on",
+          website: String(fields.get("website") || ""),
+        }),
+        signal: controller.signal,
+      });
+      const result = await response.json();
+      if (!response.ok || result?.saved !== true) {
+        throw new Error(result?.error || "We couldn’t save your email. Please try again.");
+      }
       setWaitlistStatus("success");
     } catch (error) {
       setWaitlistStatus("error");
       setWaitlistError(error.name === "AbortError"
         ? "The connection took too long. Please try again."
-        : "We couldn’t complete your signup. Please check your address and try again.");
+        : "We couldn’t save your email. Please check your address and try again.");
     } finally {
       clearTimeout(timeout);
       waitlistBusyRef.current = false;
