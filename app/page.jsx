@@ -8,13 +8,13 @@ import {
 
   ArrowDownRight, ArrowUpRight, Sun, Moon, Code2, Terminal, Shapes,
 
-  Lightbulb, BookOpen, Github, Mail, ArrowRight, CheckCircle2
+  Lightbulb, BookOpen, Github, Mail, ArrowRight, CheckCircle2, X, LoaderCircle
 
 } from "lucide-react";
 
 
 
-const boothyWaitlistHref = "https://boothy.floot.app";
+const boothyDescription = "Boothy reminds you to check your belongings before you leave a ride.";
 
 const projects = [
 
@@ -22,7 +22,7 @@ const projects = [
 
   { number: "02", title: "Ascii-Art", type: "GO · ASCII ART", description: "A command-line project for generating stylised ASCII art from text input.", icon: Shapes, href: "https://github.com/vickiller-droid/ascii-art", stack: ["Go", "CLI", "Text rendering"], challenge: "Translate text into readable character-based artwork.", approach: "Explore how character patterns and input handling shape a command-line output.", learning: "Input validation, formatting, and output consistency." },
 
-  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: "Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.", icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "Belongings are easy to forget when stepping out of a vehicle. Boothy began with that real frustration.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
+  { number: "03", title: "Boothy", type: "PROTOTYPE · IN DEVELOPMENT", description: boothyDescription, icon: Lightbulb, href: "https://github.com/Vickiller-droid/boothy", stack: ["Travel reminders", "Prototype", "In development"], challenge: "I left my power bank and head warmer behind during rides on the same day. That experience is why I started building Boothy.", approach: "Prototype a journey and belongings-reminder workflow, then test reminder timing on real trips before expanding the feature set.", learning: "Reliable arrival detection and background notifications need real-device testing. Automatic travel detection, account sync, and route history are not claimed as completed features." },
 
   { number: "04", title: "VicFungo", type: "PERSONAL PROJECT · IN PROGRESS", description: "An evolving habit-tracking concept built around making consistency simpler and reducing friction.", icon: Lightbulb, href: "https://github.com/vickiller-droid", stack: ["Product concept", "Habit design", "In progress"], challenge: "Make it easier to maintain a useful routine without adding unnecessary friction.", approach: "Explore a simple habit-tracking experience, starting with the smallest useful workflow.", learning: "Product scoping and iteration; this is an evolving concept, not a finished release." },
 
@@ -36,6 +36,59 @@ export default function HomePage() {
   const [theme, setTheme] = useState("light");
 
   const [expandedProject, setExpandedProject] = useState(null);
+
+  const waitlistDialogRef = useRef(null);
+  const waitlistSuccessRef = useRef(null);
+  const waitlistBusyRef = useRef(false);
+  const [waitlistStatus, setWaitlistStatus] = useState("idle");
+  const [waitlistError, setWaitlistError] = useState("");
+
+  function openWaitlist() {
+    waitlistDialogRef.current?.showModal();
+    document.body.classList.add("waitlistOpen");
+  }
+
+  async function joinWaitlist(event) {
+    event.preventDefault();
+    if (waitlistBusyRef.current) return;
+    const fields = new FormData(event.currentTarget);
+    waitlistBusyRef.current = true;
+    setWaitlistStatus("saving");
+    setWaitlistError("");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch("/api/boothy-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: String(fields.get("email") || "").trim(),
+          consent: fields.get("consent") === "on",
+          website: String(fields.get("website") || ""),
+        }),
+        signal: controller.signal,
+      });
+      const result = await response.json();
+      if (!response.ok || result?.saved !== true) {
+        throw new Error(result?.error || "We couldn’t save your email. Please try again.");
+      }
+      setWaitlistStatus("success");
+    } catch (error) {
+      setWaitlistStatus("error");
+      setWaitlistError(error.name === "AbortError"
+        ? "The connection took too long. Please try again."
+        : "We couldn’t save your email. Please check your address and try again.");
+    } finally {
+      clearTimeout(timeout);
+      waitlistBusyRef.current = false;
+    }
+  }
+
+  useEffect(() => {
+    if (waitlistStatus === "success" && waitlistDialogRef.current?.open) {
+      waitlistSuccessRef.current?.focus();
+    }
+  }, [waitlistStatus]);
 
 
 
@@ -215,9 +268,9 @@ entry.target.classList.add("isVisible");
             <p className="eyebrow">FEATURED EXPLORATION / BOOTHY</p>
             <span className="boothyStatus">Prototype · In development</span>
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
-            <p>Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.</p>
+            <p>{boothyDescription} I started building it after leaving my power bank and head warmer behind on the same day.</p>
             <p className="boothyHonesty">Not ready yet. Join the waitlist to hear when it launches.</p>
-            <div className="boothyActions"><a className="heroActionPrimary" href={boothyWaitlistHref} target="_blank" rel="noopener noreferrer" aria-label="Join the Boothy waitlist (opens in a new tab)">Join the waitlist <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
+            <div className="boothyActions"><button type="button" className="heroActionPrimary" onClick={openWaitlist} aria-haspopup="dialog" aria-controls="boothy-waitlist">Join the waitlist <ArrowRight size={16}/></button><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
             <p className="boothyWaitlistNote">Get notified when Boothy launches · <a href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={12}/></a></p>
           </div>
           <figure className="boothyStage">
@@ -304,6 +357,31 @@ entry.target.classList.add("isVisible");
       </section>
 
 
+
+      <dialog ref={waitlistDialogRef} id="boothy-waitlist" className="waitlistDialog" aria-labelledby="boothy-waitlist-title" aria-describedby="boothy-waitlist-intro" onClose={() => document.body.classList.remove("waitlistOpen")}>
+        <button type="button" className="waitlistClose" aria-label="Close waitlist" onClick={() => waitlistDialogRef.current?.close()}><X size={22}/></button>
+        <p className="eyebrow">BOOTHY / IN DEVELOPMENT</p>
+        <h2 id="boothy-waitlist-title">Be first to hear when it’s ready.</h2>
+        <p id="boothy-waitlist-intro">Get an email when Boothy launches.</p>
+        {waitlistStatus === "success" ? (
+          <div className="waitlistSuccess" role="status">
+            <CheckCircle2 size={30} aria-hidden="true"/>
+            <h3 ref={waitlistSuccessRef} tabIndex={-1}>You’re on the list.</h3>
+            <p>Your email has been saved. I’ll email you when Boothy is ready.</p>
+            <button type="button" className="waitlistSubmit" onClick={() => waitlistDialogRef.current?.close()}>Back to the portfolio <ArrowRight size={17}/></button>
+          </div>
+        ) : (
+          <form onSubmit={joinWaitlist} className="waitlistForm" aria-busy={waitlistStatus === "saving"}>
+            <label htmlFor="boothy-email">Your email address</label>
+            <input id="boothy-email" name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required maxLength={254} placeholder="you@example.com" disabled={waitlistStatus === "saving"}/>
+            <label className="waitlistConsent"><input name="consent" type="checkbox" required disabled={waitlistStatus === "saving"}/><span>Email me when Boothy launches.</span></label>
+            <div className="waitlistHoneypot" aria-hidden="true"><label htmlFor="boothy-website">Leave this empty</label><input id="boothy-website" name="website" tabIndex={-1} autoComplete="off"/></div>
+            {waitlistError && <p role="alert" className="waitlistError">{waitlistError}</p>}
+            <button type="submit" className="waitlistSubmit" disabled={waitlistStatus === "saving"}>{waitlistStatus === "saving" ? <>Saving your place… <LoaderCircle className="waitlistSpinner" size={18}/></> : <>Join the waitlist <ArrowRight size={18}/></>}</button>
+            <p className="waitlistPrivacy">Only the Boothy launch update. To leave the list, <a href="mailto:alabivictordaniel@gmail.com">email me</a>.</p>
+          </form>
+        )}
+      </dialog>
 
       <footer className="footer" id="contact">
 
