@@ -14,7 +14,7 @@ import {
 
 
 
-const boothyWaitlistHref = "mailto:alabivictordaniel@gmail.com?subject=Boothy%20waitlist&body=Hi%20Victor%2C%0A%0APlease%20add%20me%20to%20the%20Boothy%20waitlist%20and%20email%20me%20when%20it%20launches.%0A%0AMy%20name%3A%20";
+const boothyWaitlistHref = "https://boothy.floot.app";
 
 const projects = [
 
@@ -217,8 +217,8 @@ entry.target.classList.add("isVisible");
             <h3 id="boothy-title">Leave the ride.<br/><em>Keep your belongings.</em></h3>
             <p>Before you get out of a bus, taxi or keke, Boothy reminds you to take your things.</p>
             <p className="boothyHonesty">Not ready yet. Join the waitlist to hear when it launches.</p>
-            <div className="boothyActions"><a className="heroActionPrimary" href={boothyWaitlistHref} aria-label="Join the Boothy waitlist by email">Join the waitlist <Mail size={16}/></a><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
-            <p className="boothyWaitlistNote">Join by email · <a href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={12}/></a></p>
+            <div className="boothyActions"><a className="heroActionPrimary" href={boothyWaitlistHref} target="_blank" rel="noopener noreferrer" aria-label="Join the Boothy waitlist (opens in a new tab)">Join the waitlist <ArrowUpRight size={16}/></a><a className="heroActionSecondary" href="/boothy/index.html" target="_blank" rel="noreferrer">Try the prototype <ArrowUpRight size={16}/></a></div>
+            <p className="boothyWaitlistNote">Get notified when Boothy launches · <a href="https://github.com/Vickiller-droid/boothy" target="_blank" rel="noreferrer">View source <ArrowUpRight size={12}/></a></p>
           </div>
           <figure className="boothyStage">
             <div className="boothyPhone" role="img" aria-label="Boothy arrival reminder preview on a rotating iPhone mockup">
