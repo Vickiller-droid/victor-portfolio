@@ -8,13 +8,24 @@
     registration = navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).catch(() => null);
   }
   function save() { try { localStorage.setItem(key, JSON.stringify(options)); } catch { /* Session preference only. */ } }
-  function unlockAudio() {
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (!Audio) return;
-    try { audio ||= new Audio(); audio.resume().catch(() => {}); } catch { /* Browser may disallow sound. */ }
+  function bounded(promise, ms = 2000) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Alert timed out')), ms);
+      Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+    });
   }
-  function beep() {
-    if (!audio || audio.state !== 'running') return;
+  async function unlockAudio() {
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) return false;
+    try {
+      if (!audio || audio.state === 'closed') audio = new Audio();
+      if (audio.state !== 'running') await bounded(audio.resume());
+      return audio.state === 'running';
+    } catch { return false; }
+  }
+  async function beep() {
+    if (!await unlockAudio()) return false;
+    try {
     const oscillator = audio.createOscillator(), gain = audio.createGain();
     oscillator.connect(gain); gain.connect(audio.destination);
     oscillator.frequency.setValueAtTime(740, audio.currentTime);
@@ -23,20 +34,39 @@
     gain.gain.exponentialRampToValueAtTime(.12, audio.currentTime + .03);
     gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .4);
     oscillator.start(); oscillator.stop(audio.currentTime + .42);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+    return true;
+    } catch { return false; }
   }
-  async function notify(title, body, tag) {
-    if (options.sound) beep();
-    if (options.vibration && navigator.vibrate) navigator.vibrate([180, 80, 180]);
-    if (!options.notifications || !window.Notification || Notification.permission !== 'granted') return true;
+  async function phoneNotification(title, body, tag) {
+    if (!options.notifications) return 'off';
+    if (!window.Notification || !window.isSecureContext) return 'unavailable';
+    if (Notification.permission !== 'granted') return 'blocked';
     try {
-      const worker = await registration;
-      if (worker) await worker.showNotification(title, { body, tag, icon: 'icon-192.png', data: { url: './#ride' } });
+      const worker = await bounded(registration);
+      const settings = { body, tag, icon: 'icon-192.png', data: { url: './#ride' } };
+      if (options.vibration) settings.vibrate = [180, 80, 180];
+      if (worker) await bounded(worker.showNotification(title, settings));
       else {
-        const n = new Notification(title, { body, tag, icon: 'icon-192.png' });
+        const n = new Notification(title, settings);
         n.onclick = () => { window.focus(); location.hash = 'ride'; n.close(); };
       }
-      return true;
-    } catch { return false; }
+      return 'requested';
+    } catch { return 'failed'; }
+  }
+  async function notify(title, body, tag) {
+    // Start each channel independently, retaining the button's user activation.
+    const sound = options.sound ? beep() : Promise.resolve(null);
+    let vibration = 'off';
+    if (options.vibration) {
+      vibration = 'unavailable';
+      if (navigator.vibrate) {
+        try { vibration = navigator.vibrate([180, 80, 180]) ? 'requested' : 'blocked'; }
+        catch { vibration = 'failed'; }
+      }
+    }
+    const [played, notification] = await Promise.all([sound, phoneNotification(title, body, tag)]);
+    return { sound: played === null ? 'off' : played ? 'started' : 'failed', vibration, notification };
   }
   function status() {
     if (!window.Notification || !window.isSecureContext) return 'unavailable';
@@ -55,7 +85,10 @@
       const permission = await Notification.requestPermission();
       options.notifications = permission === 'granted'; save(); return status();
     },
-    signal: notify,
+    signal: async (...args) => {
+      const report = await notify(...args);
+      return !Object.values(report).some(value => ['failed', 'blocked', 'unavailable'].includes(value));
+    },
     test: () => notify('Boothy · Test alert', 'A reminder with its reason. Keep Boothy open for the ride timer.', 'boothy-test'),
     close(tag) {
       if (registration) registration.then(worker => worker?.getNotifications({ tag })).then(items => items?.forEach(n => n.close())).catch(() => {});
@@ -70,3 +103,4 @@
     }
   };
 })();
+

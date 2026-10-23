@@ -15,7 +15,7 @@
   const isReal = () => (state.ride.clockMode || state.config.clockMode) === 'real';
   const tag = (kind, r = state.ride) => `boothy-${r.id || 'ride'}-${kind}${kind === 'before' ? '-' + (r.preArrival?.revision || 0) : ''}`;
   function signal(title, body, kind) {
-    window.BoothyDevice?.signal(title, body, tag(kind)).then(ok => { if (!ok) toast('Phone notification could not be shown. Your reminder is still visible in Boothy.'); });
+    window.BoothyDevice?.signal(title, body, tag(kind)).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
   }
   function signalChanges(previous) {
     const r = state.ride;
@@ -237,8 +237,28 @@
       const panel = document.querySelector('.alert-settings'); if (panel) panel.outerHTML = alertOptions(); else render(); return;
     }
     if (a === 'testAlert') {
-      window.BoothyDevice?.unlockAudio(); const ok = await window.BoothyDevice?.test();
-      toast(ok === false ? 'Phone alert could not be shown. In-app reminders still work.' : 'Test alert triggered. Sound and vibration depend on your device and selected options.'); return;
+      const panel = control.closest('.alert-settings');
+      let result = panel?.querySelector('.alert-test-result');
+      if (!result && panel) {
+        result = document.createElement('p'); result.className = 'status-caption alert-test-result';
+        result.setAttribute('role', 'status'); result.setAttribute('aria-live', 'polite'); panel.append(result);
+      }
+      control.disabled = true;
+      if (result) result.textContent = 'Testing your selected alerts…';
+      try {
+        const report = await window.BoothyDevice?.test();
+        if (!report || typeof report !== 'object') throw new Error('Reload required');
+        const labels = { off: 'off', started: 'playback started', requested: 'requested from your phone', unavailable: 'unavailable here', blocked: 'blocked by your browser', failed: 'could not start' };
+        const summary = `Sound: ${labels[report.sound] || 'unknown'}. Vibration: ${labels[report.vibration] || 'unknown'}. Phone notification: ${labels[report.notification] || 'unknown'}.`;
+        const allOff = Object.values(report).every(value => value === 'off');
+        const guidance = allOff ? 'Turn on sound or vibration above, then test again.' : 'Did you hear or feel it? If not, check media volume, silent/Do Not Disturb settings and connected headphones. A browser request cannot confirm that you heard or felt an alert.';
+        if (result) result.textContent = `${summary} ${guidance}`;
+        else toast(`${summary} ${guidance}`);
+      } catch {
+        const message = 'The alert test could not finish. Reload Boothy and try again.';
+        if (result) result.textContent = message; else toast(message);
+      } finally { control.disabled = false; }
+      return;
     }
     if (a === 'captureParking') {
       if (capturingParking) return;
@@ -309,3 +329,4 @@
   syncClock();
   setInterval(syncClock, 1000);
 })();
+
