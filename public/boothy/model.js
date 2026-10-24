@@ -4,11 +4,11 @@
   const initial = () => ({
     version: 1,
     config: {
-      origin: 'Home, Abuja', destination: 'Impact Hub, Abuja', duration: 5, clockMode: 'simulation', transport: 'car',
-      items: ['Phone', 'Power bank', 'Earbuds', 'Head warmer'],
-      transit: { message: 'Message the meetup organiser', reason: 'Let them know I am on my way.', at: 2 },
-      end: { message: 'Check the back seat', reason: 'My power bank and head warmer could be left there.' },
-      saveParking: true, parkingNote: 'Front entrance · space B12'
+      origin: '', destination: '', duration: 15, clockMode: 'real', transport: 'passenger',
+      items: ['Phone', 'Bag', 'Keys'],
+      transit: { enabled: false, message: '', reason: '', at: 2 },
+      end: { message: 'Check your things', reason: 'Make sure nothing is left behind.' },
+      saveParking: false, parkingNote: ''
     },
     ride: { stage: 'ready', elapsed: 0, events: [] }, parking: null
   });
@@ -41,7 +41,7 @@
     r.id = String(r.startedAt);
     r.etaAt = r.startedAt + r.duration * 60000; r.etaReached = false;
     r.preArrival = { status: 'scheduled', deliveredAt: null, revision: 0 };
-    r.transit = { ...clone(s.config.transit), status: 'scheduled' };
+    r.transit = { ...clone(s.config.transit), status: s.config.transit.enabled === false ? 'off' : 'scheduled' };
     r.end = { ...clone(s.config.end), done: false };
     r.items = s.config.items.map((name, index) => ({ id: index, name, checked: false }));
     r.saveParking = s.config.saveParking && r.transport === 'car'; r.parkingNote = s.config.parkingNote;
@@ -68,7 +68,7 @@
         const c = data.config;
         if (c) s.config = clone(c);
         if (r.stage === 'inTransit' && data.updateTransit) {
-          r.transit = { ...clone(s.config.transit), status: 'scheduled' };
+          r.transit = { ...clone(s.config.transit), status: s.config.transit.enabled === false ? 'off' : 'scheduled' };
           event(s, 'In-transit reminder updated'); deliver(s);
         }
         break;

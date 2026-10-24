@@ -88,3 +88,25 @@ select:focus-visible{outline:3px solid #b8491e;outline-offset:4px}
 .belongings-popup .button{font-size:14px;min-height:48px;width:100%}
 .belongings-popup .check-item{font-size:14px;min-height:48px}
 .belongings-popup [hidden]{display:none!important}
+
+/* Task-focused trip flow. */
+.workspace{grid-template-columns:170px minmax(0,1fr);max-width:1200px}
+main{width:100%;max-width:840px;padding:36px 40px 48px}
+.content-grid{display:block}.context-panel,.sidebar-note,.sidebar-label,.app-footer,.heading-icon,.page-heading .eyebrow,.page-heading .subtitle,.version{display:none!important}
+.page-heading{margin-bottom:24px}.page-heading h1{font-size:32px;letter-spacing:-1px}
+.sidebar{padding:32px 14px}.topbar{height:78px}.workspace{min-height:calc(100vh - 78px)}
+.card{box-shadow:none;border:1px solid var(--line);border-radius:20px}.card-pad{padding:28px}
+.field{font-size:16px!important;margin-bottom:24px}.field input,.field textarea,.field select{font-size:16px;min-height:50px;padding:13px 15px;margin-top:10px}
+.small-copy,.field-note,.status-caption{font-size:14px;line-height:1.55}
+.button{font-size:16px;min-height:52px;border-radius:12px}.button.primary{background:#e65d27;color:white}.button.primary:hover{background:#c94d1d}.text-button{font-size:14px;min-height:44px;display:inline-flex;align-items:center;gap:8px}
+.form-details{margin:20px 0}.form-details summary{font-size:14px;line-height:1.5;padding:10px 0;cursor:pointer;color:var(--muted)}
+.form-details[open]>summary{margin-bottom:16px}.form-details .field{margin-bottom:20px}.form-details .checkbox-label{font-size:14px}
+.setup-progress{display:flex;gap:26px;list-style:none;margin:0 0 22px;padding:0}.setup-progress li{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--muted)}
+.setup-progress li span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);font-weight:600}.setup-progress [aria-current=step]{color:var(--ink);font-weight:700}.setup-progress [aria-current=step] span{color:white;background:#283f34;border-color:#283f34}
+.setup-card .button-row{display:grid;grid-template-columns:1fr 2fr;margin-top:24px}.trip-summary{padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:24px 0;display:grid;gap:8px}.trip-summary span{font-size:14px;color:var(--muted)}.trip-summary strong{font-size:24px;overflow-wrap:anywhere}
+.demo-entry{text-align:center}.destination-title{font-size:28px;line-height:1.2;letter-spacing:-.8px;overflow-wrap:anywhere;margin:14px 0}.arrival-estimate{font-size:24px;line-height:1.4;margin:20px 0 8px}.active-trip>.small-copy{margin-bottom:28px}.trip-secondary{margin-top:12px}.active-trip .card-top{margin-bottom:20px}.card-top .pill{font-size:12px}.section-label{font-size:11px;letter-spacing:1px}
+.check-item{min-height:56px;font-size:16px;padding:14px}.check-item .checked-caption{font-size:12px}.complete-trip{text-align:center;padding:40px 28px}.complete-trip h2{font-size:28px;line-height:1.25;margin:20px 0 12px}.completion-mark{display:inline-grid;place-items:center;width:64px;height:64px;background:var(--green-soft);color:var(--green);border-radius:50%}.completion-mark .icon{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2}.complete-trip .button{margin-top:24px}
+.alert-summary{font-size:13px;color:var(--muted)}.alert-settings .checkbox-label{font-size:15px;margin-bottom:20px}.alert-settings h2{font-size:23px}.alert-settings .button-row{display:flex;flex-wrap:wrap}.alert-settings .button{font-size:14px}.optional-reminders>summary{font-size:15px;cursor:pointer;line-height:1.5}.optional-reminders form{margin-top:22px}fieldset{border:0;padding:0;margin:0;min-width:0}fieldset:disabled{opacity:.55}
+.reminder-alert .reminder-message{font-size:21px}.reminder-alert .pill{font-size:12px}.toast{font-size:14px}
+[data-theme=dark] .button.primary{background:#d45524;color:white}
+@media(max-width:650px){.workspace{display:block}.topbar{height:68px;padding:0 20px}.brand{font-size:28px}.private-badge{font-size:10px}main{max-width:none;padding:26px 18px 108px}.page-heading h1{font-size:29px}.card-pad{padding:22px}.sidebar{padding:7px 16px calc(8px + env(safe-area-inset-bottom))}.nav-item{font-size:12px;min-height:56px}.nav-item svg{width:22px;height:22px}.setup-progress{gap:24px}.destination-title{font-size:27px}.button{font-size:16px}.small-copy,.field-note,.status-caption{font-size:14px}.alert-settings .button-row .button{flex-basis:auto;flex:1}.alert-settings .button-row .full{flex-basis:100%}.belongings-popup{padding:22px}.belongings-popup h2{font-size:25px}}
