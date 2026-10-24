@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const source = fs.readFileSync(__dirname + '/../public/boothy/device.js', 'utf8');
 function setup(config = {}) {
-  const calls = { tones: 0, vibrations: 0, notifications: 0, stops: [], frequencies: [] };
+  const calls = { tones: 0, vibrations: 0, notifications: 0, stops: [], frequencies: [], notificationOptions: [], notices: [] };
   class Audio {
     constructor() { this.state = 'suspended'; this.currentTime = 0; this.destination = {}; }
     resume() {
@@ -15,15 +15,15 @@ function setup(config = {}) {
     createOscillator() { return { connect() {}, disconnect() {}, frequency: { setValueAtTime(value) { calls.frequencies.push(value); } }, start() { calls.tones++; }, stop(at) { calls.stops.push(at); } }; }
     createGain() { return { connect() {}, disconnect() {}, gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } }; }
   }
-  class Notification { static permission = config.permission || 'granted'; constructor() { calls.notifications++; } }
-  const ctx = { window: { AudioContext: config.noAudio ? undefined : Audio, Notification, isSecureContext: true }, Notification,
+  class Notification { static permission = config.permission || 'granted'; constructor(title, options) { calls.notifications++; calls.notificationOptions.push(options); calls.notices.push(this); } close() {} }
+  const ctx = { URLSearchParams, location: { hash: '' }, window: { focus() { calls.focused = true; }, AudioContext: config.noAudio ? undefined : Audio, Notification, isSecureContext: true }, Notification,
     navigator: { vibrate: config.noVibration ? undefined : () => { calls.vibrations++; if (config.throwVibration) throw Error('blocked'); return !config.blockVibration; } },
     localStorage: { getItem: () => JSON.stringify(config.options || { sound: true, vibration: true, notifications: true }), setItem() {} },
     setTimeout: fn => setTimeout(fn, 30), clearTimeout };
   if (config.workerHang) ctx.navigator.serviceWorker = { register: () => Promise.resolve(), ready: new Promise(() => {}) };
-  if (config.worker) ctx.navigator.serviceWorker = { register: () => Promise.resolve(), ready: Promise.resolve({ showNotification: async () => { calls.notifications++; } }) };
+  if (config.worker) ctx.navigator.serviceWorker = { register: () => Promise.resolve(), ready: Promise.resolve({ showNotification: async (title, options) => { calls.notifications++; calls.notificationOptions.push(options); } }) };
   vm.runInNewContext(source, ctx);
-  return { device: ctx.window.BoothyDevice, calls };
+  return { device: ctx.window.BoothyDevice, calls, location: ctx.location };
 }
 test('waits for delayed audio resume before playing the tone', async () => {
   const { device, calls } = setup(); const r = await device.test();
@@ -78,4 +78,22 @@ test('item confirmation is brief, respects sound off, and never interrupts a rem
   const {device, calls} = setup(); await device.confirmItem(); assert.equal(calls.stops.at(-1), .42);
   device.stopSound(); await device.test(); const count = calls.tones; await device.confirmItem(); assert.equal(calls.tones, count);
   device.setOption('sound', false); await device.confirmItem(); assert.equal(calls.tones, count);
+});
+
+test('phone-only test requests a system notification without a web tone', async () => {
+ const {device,calls}=setup({worker:true}); assert.equal(await device.testPhone(),'requested');
+ assert.equal(calls.tones,0); assert.equal(calls.notifications,1);
+ assert.equal(calls.notificationOptions[0].data.kind,'test');
+});
+test('trip notifications carry the matching ride and reminder', async()=>{
+ const {device,calls}=setup({worker:true}); await device.signal('a','b','trip-tag',{kind:'before',rideId:'ride-123'});
+ const n=calls.notificationOptions[0]; assert.equal(n.data.kind,'before'); assert.equal(n.data.rideId,'ride-123'); assert.equal(n.requireInteraction,true);
+});
+test('desktop notification fallback opens the matching reminder',async()=>{
+ const {device,calls,location}=setup(); await device.signal('a','b','trip-tag',{kind:'end',rideId:'ride-123'});
+ calls.notices[0].onclick(); assert.ok(location.hash.includes('kind=end')); assert.ok(location.hash.includes('ride=ride-123')); assert.equal(calls.focused,true);
+});
+test('phone-only test honours disabled and denied permissions', async()=>{
+ assert.equal(await setup({options:{}}).device.testPhone(),'off');
+ assert.equal(await setup({permission:'denied'}).device.testPhone(),'blocked');
 });

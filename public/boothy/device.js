@@ -63,23 +63,26 @@
     return true;
     } catch { return false; }
   }
-  async function phoneNotification(title, body, tag) {
+  async function phoneNotification(title, body, tag, destination = {}) {
     if (!options.notifications) return 'off';
     if (!window.Notification || !window.isSecureContext) return 'unavailable';
     if (Notification.permission !== 'granted') return 'blocked';
     try {
       const worker = await bounded(registration);
-      const settings = { body, tag, icon: 'icon-192.png', data: { url: './#ride' } };
+      const kind = ['before', 'end', 'transit', 'eta', 'test'].includes(destination.kind) ? destination.kind : 'ride';
+      const rideId = String(destination.rideId || '');
+      const route = 'notification?' + new URLSearchParams({ kind, ride: rideId });
+      const settings = { body, tag, icon: 'icon-192.png', badge: 'icon-192.png', requireInteraction: true, renotify: Boolean(tag), data: { kind, rideId } };
       if (options.vibration) settings.vibrate = [180, 80, 180];
       if (worker) await bounded(worker.showNotification(title, settings));
       else {
         const n = new Notification(title, settings);
-        n.onclick = () => { window.focus(); location.hash = 'ride'; n.close(); };
+        n.onclick = () => { window.focus(); location.hash = route; n.close(); };
       }
       return 'requested';
     } catch { return 'failed'; }
   }
-  async function notify(title, body, tag) {
+  async function notify(title, body, tag, destination) {
     // Start each channel independently, retaining the button's user activation.
     const sound = options.sound ? beep(false, tag) : Promise.resolve(null);
     let vibration = 'off';
@@ -90,7 +93,7 @@
         catch { vibration = 'failed'; }
       }
     }
-    const [played, notification] = await Promise.all([sound, phoneNotification(title, body, tag)]);
+    const [played, notification] = await Promise.all([sound, phoneNotification(title, body, tag, destination)]);
     return { sound: played === null ? 'off' : played ? 'started' : 'failed', vibration, notification };
   }
   function status() {
@@ -120,6 +123,7 @@
       return !Object.values(report).some(value => ['failed', 'blocked', 'unavailable'].includes(value));
     },
     test: () => notify('Boothy · Test alert', 'A reminder with its reason. Keep Boothy open for the ride timer.', 'boothy-test'),
+    testPhone: () => phoneNotification('Boothy · Phone notification test', 'Tap to return to Boothy. This is a test, not a trip reminder.', 'boothy-phone-test', { kind: 'test' }),
     close(tag) {
       stopSound(tag);
       if (registration) registration.then(worker => worker?.getNotifications({ tag })).then(items => items?.forEach(n => n.close())).catch(() => {});

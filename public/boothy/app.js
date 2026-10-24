@@ -5,6 +5,7 @@
   let storageOK = true, state;
   try { state = M.restore(localStorage.getItem(KEY)); } catch { state = M.initial(); storageOK = false; }
   let tab = ['ride', 'reminders', 'parking'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ride';
+  let phoneTestTimer = null, phoneTestStatus = '';
   let detectionTimer, toastTimer, parkingPrompt = false, capturingParking = false;
   const $ = selector => document.querySelector(selector);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,8 +37,36 @@
     dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist" hidden></div><div class="button-row">${button('popupCheck', 'Check my things', 'primary full')}${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full', 'hidden')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
     if (!dialog.open) dialog.showModal();
   }
+  function revealChecklist() {
+    window.BoothyDevice?.stopSound();
+    const list = $('#belongings-popup .popup-checklist');
+    if (!list) return;
+    list.hidden = false; list.innerHTML = checklistMarkup();
+    $('#belongings-popup [data-action=popupCheck]').hidden = true;
+    $('#belongings-popup [data-action=popupDone]').hidden = false;
+    list.querySelector('button')?.focus();
+  }
+  function openNotification() {
+    const route = window.BoothyNotificationRoute?.destination(location.hash, state.ride);
+    if (!route) return false;
+    closePopup();
+    tab = route.view; render();
+    history.replaceState(null, '', '#' + tab);
+    if (route.checklist) { showPopup(route.checklist); revealChecklist(); }
+    else if (route.focusReminder) $('#notice-region').scrollIntoView({ block: 'start' });
+    if (route.message) toast(route.message);
+    return true;
+  }
+  function updatePhoneTest() {
+    const panel = $('.alert-settings');
+    if (!panel) return;
+    const status = panel.querySelector('.phone-test-status'); if (status) status.textContent = phoneTestStatus;
+    const start = panel.querySelector('[data-action=testPhoneLater]');
+    if (start) start.disabled = phoneTestTimer !== null || window.BoothyDevice?.status() !== 'enabled';
+    const cancel = panel.querySelector('[data-action=cancelPhoneTest]'); if (cancel) cancel.hidden = phoneTestTimer === null;
+  }
   function signal(title, body, kind) {
-    window.BoothyDevice?.signal(title, body, tag(kind)).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
+    window.BoothyDevice?.signal(title, body, tag(kind), { kind, rideId: state.ride.id }).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
   }
   function signalChanges(previous) {
     const r = state.ride;
@@ -188,7 +217,12 @@
       <label class="field">Reminder tone<select data-tone aria-label="Reminder tone">${(window.BoothyDevice?.tones() || []).map(t => `<option value="${t.id}" ${prefs.tone === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
       <label class="checkbox-label"><input type="checkbox" data-alert="vibration" ${prefs.vibration ? 'checked' : ''} ${capabilities.vibration ? '' : 'disabled'}><span>Vibrate${capabilities.vibration ? ' on supported devices' : ' · unavailable here'}</span></label>
       <div class="button-row">${button('notifications', notificationStatus === 'enabled' ? 'Turn phone alerts off' : 'Enable phone alerts', 'outline small', notificationStatus === 'unavailable' || notificationStatus === 'blocked' ? 'disabled' : '', 'bell')}${button('testAlert', 'Test alert', 'outline small', '', 'check')}${button('stopSound', 'Stop sound', 'outline small')}</div>
-      <p class="status-caption">${notificationStatus === 'enabled' ? 'Phone notifications are enabled.' : notificationStatus === 'blocked' ? 'Phone alerts are blocked. Change this site’s notification permission in your browser settings.' : notificationStatus === 'unavailable' ? 'Phone alerts are unavailable in this browser. On iPhone, open Boothy from a Home Screen app to check support.' : 'Phone alerts ask for permission only when you enable them.'} Keep Boothy open for timely reminders; locked or closed pages cannot guarantee the alert schedule.</p></section>`;
+      <p class="status-caption">${notificationStatus === 'enabled' ? 'Phone notifications are enabled.' : notificationStatus === 'blocked' ? 'Phone alerts are blocked. Change this site’s notification permission in your browser settings.' : notificationStatus === 'unavailable' ? 'Phone alerts are unavailable in this browser. On iPhone, open Boothy from a Home Screen app to check support.' : 'Phone alerts ask for permission only when you enable them.'} Keep Boothy open for timely reminders; locked or closed pages cannot guarantee the alert schedule.</p>
+      <div class="divider"></div><h3>Check phone notifications</h3>
+      <p class="small-copy">Send a test in 20 seconds, then switch to another app or lock your screen. Keep this tab open. Your phone controls the notification sound and banner.</p>
+      <div class="button-row">${button('testPhoneLater', 'Test phone alert in 20 seconds', 'outline full', notificationStatus !== 'enabled' || phoneTestTimer !== null ? 'disabled' : '')}${button('cancelPhoneTest', 'Cancel test', 'outline small', phoneTestTimer === null ? 'hidden' : '')}</div>
+      <p class="status-caption phone-test-status" role="status" aria-live="polite">${escape(phoneTestStatus)}</p>
+      <details class="form-details"><summary>No banner? Check these settings</summary><p class="small-copy">1. In Chrome, open this site’s page information → Permissions → Notifications → Allow. Then enable phone alerts above.</p><p class="small-copy">2. In Android Settings → Apps → Chrome (or Boothy) → Notifications, allow notifications and choose an alerting category. Enable “Pop on screen” or “Floating notifications” if available. Names vary by phone.</p><p class="small-copy">3. Check Do Not Disturb. Pull down the notification tray: an alert may be there even without a banner.</p><p class="small-copy">This test uses the open page’s timer. A delayed or missing test means background delivery is not yet proven on your phone.</p></details></section>`;
   }
   function dateLabel(iso) {
     const date = new Date(iso);
@@ -255,19 +289,37 @@
     if (a === 'stopSound') { window.BoothyDevice?.stopSound(); toast('Sound stopped.'); return; }
     if (a === 'popupDone') { const kind = popupKind; closePopup(); send(kind === 'end' ? 'ackEnd' : 'ackPreArrival'); return; }
     if (a === 'popupClose') { closePopup(); return; }
-    if (a === 'openChecklist') { showPopup(state.ride.stage === 'arrived' ? 'end' : 'before'); document.querySelector('[data-action=popupCheck]').click(); return; }
+    if (a === 'openChecklist') { showPopup(state.ride.stage === 'arrived' ? 'end' : 'before'); revealChecklist(); return; }
     if (a === 'popupCheck') {
-      window.BoothyDevice?.stopSound();
-      const list = $('#belongings-popup .popup-checklist'); list.hidden = false; list.innerHTML = checklistMarkup();
-      control.hidden = true; $('#belongings-popup [data-action=popupDone]').hidden = false; list.querySelector('button')?.focus(); return;
+      revealChecklist(); return;
     }
     if (a === 'popupSnooze') { closePopup(); send('snoozePreArrival'); toast(isReal() ? 'I’ll remind you in 1 minute.' : 'Snoozed. Advance 1 minute to test it.'); return; }
     if (a === 'toggleTheme') { window.BoothyTheme?.toggle(); return; }
     if (a === 'chooseClock' && state.ride.stage === 'ready') {
       send('configure', { config: { ...state.config, clockMode: control.dataset.value === 'real' ? 'real' : 'simulation' } }); return;
     }
+    if (a === 'cancelPhoneTest') {
+      clearTimeout(phoneTestTimer); phoneTestTimer = null; phoneTestStatus = 'Test cancelled.'; updatePhoneTest(); return;
+    }
+    if (a === 'testPhoneLater') {
+      if (phoneTestTimer !== null) return;
+      if (window.BoothyDevice?.status() !== 'enabled') { toast('Enable phone alerts first.'); return; }
+      const expectedAt = Date.now() + 20000;
+      phoneTestStatus = 'Test set. Switch apps now, or lock your screen. Keep Boothy’s tab open.';
+      phoneTestTimer = setTimeout(async () => {
+        // Clear the pending state only once the delivery request has settled.
+        let result;
+        try { result = await window.BoothyDevice.testPhone(); } catch { result = 'failed'; }
+        phoneTestTimer = null;
+        const late = Date.now() - expectedAt > 5000;
+        phoneTestStatus = result === 'requested' ? (late ? 'The test was requested late; the browser may have paused Boothy. Check your notification tray.' : 'Phone notification requested. Check for a banner or pull down the notification tray. Delivery is not yet confirmed.') : result === 'blocked' ? 'Notifications are blocked. Check the settings below.' : result === 'off' ? 'Phone alerts are off. Enable them and try again.' : 'The phone notification could not be requested. Check permission and try again.';
+        updatePhoneTest();
+      }, 20000);
+      updatePhoneTest(); return;
+    }
     if (a === 'notifications') {
-      const status = await window.BoothyDevice?.toggleNotifications();
+      let status;
+      try { status = await window.BoothyDevice?.toggleNotifications(); } catch { toast('Notification permission could not be requested. Check the settings below.'); return; }
       toast(status === 'enabled' ? 'Phone alerts enabled. Keep Boothy open for the ride timer.' : status === 'off' ? 'Phone alerts are off.' : status === 'blocked' ? 'Notification access is blocked. In-app alerts are still on.' : 'Phone alerts are unavailable in this browser.');
       const panel = document.querySelector('.alert-settings'); if (panel) panel.outerHTML = alertOptions(); else render(); return;
     }
@@ -366,11 +418,12 @@
   window.addEventListener('storage', e => {
     if (e.key === KEY && e.newValue) { state = M.restore(e.newValue); render(); syncClock(); }
   });
-  window.addEventListener('hashchange', () => { const next = location.hash.slice(1); if (['ride', 'reminders', 'parking'].includes(next) && next !== tab) { tab = next; render(); } });
+  window.addEventListener('hashchange', () => { if (openNotification()) return; const next = location.hash.slice(1); if (['ride', 'reminders', 'parking'].includes(next) && next !== tab) { tab = next; render(); } });
   window.BoothyTheme?.sync();
   render();
   if (state.ride.stage === 'detecting') send('depart');
   syncClock();
+  openNotification();
   setInterval(syncClock, 1000);
 })();
 
