@@ -141,7 +141,7 @@
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
       <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="2" max="999" value="${c.duration}" required><span class="field-note">Your estimate. Road-based timing is not connected yet.</span></label>
-      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Pin destination on map (optional)', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin saved on this device.' : 'OpenStreetMap shows the area you view.'}</p></div>`}
+      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Pin destination on map (optional)', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'OpenStreetMap shows the area you view.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
       <label class="field">Travelling as<select name="transport"><option value="passenger" ${c.transport !== 'car' ? 'selected' : ''}>Passenger</option><option value="car" ${c.transport === 'car' ? 'selected' : ''}>Driver</option></select></label>
@@ -272,8 +272,8 @@
       const c = active ? state.ride : setupConfig();
       await window.BoothyLiveMap?.open({ point: c.destinationPoint, keepTracking: active, onSelect(point) {
         if (active && state.ride.stage === 'inTransit') send('setDestinationPoint', { point });
-        else { setupConfig().destinationPoint = point; render(); }
-        toast('Destination pin saved.');
+        else { const draft = setupConfig(); draft.destinationPoint = point; if (!draft.destination.trim()) draft.destination = 'Pinned destination'; render(); }
+        toast(active ? 'Destination pin saved.' : 'Destination pin selected.');
       } }); return;
     }
     if (a === 'setupBack') { setupStep = 0; render(); return; }
