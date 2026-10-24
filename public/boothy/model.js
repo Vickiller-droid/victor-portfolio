@@ -39,6 +39,8 @@
     r.transport = s.config.transport === 'passenger' ? 'passenger' : 'car';
     r.startedAt = Number(data.nowMs) || Date.now(); r.clockAt = r.startedAt;
     r.id = String(r.startedAt);
+    const point = s.config.destinationPoint;
+    if (point && Number.isFinite(point.lat) && Number.isFinite(point.lng) && Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180) r.destinationPoint = { lat: point.lat, lng: point.lng };
     r.etaAt = r.startedAt + r.duration * 60000; r.etaReached = false;
     r.preArrival = { status: 'scheduled', deliveredAt: null, revision: 0 };
     r.transit = { ...clone(s.config.transit), status: s.config.transit.enabled === false ? 'off' : 'scheduled' };
@@ -112,6 +114,11 @@
         r.etaReached = false;
         if (minutes > 2) r.preArrival = { status: 'scheduled', deliveredAt: null, revision: (r.preArrival.revision || 0) + 1 };
         event(s, 'Arrival estimate updated · ' + minutes + ' minutes remaining'); deliver(s);
+        break;
+      }
+      case 'setDestinationPoint': {
+        const p = data.point;
+        if (r.stage === 'inTransit' && p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180) { r.destinationPoint = { lat: p.lat, lng: p.lng }; s.config.destinationPoint = { ...r.destinationPoint }; }
         break;
       }
       case 'ackPreArrival':

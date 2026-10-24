@@ -104,6 +104,7 @@
     const tickOnly = action === 'tick' && previous.elapsed === state.ride.elapsed && previous.transit.status === state.ride.transit.status && previous.preArrival.status === state.ride.preArrival.status && previous.etaReached === state.ride.etaReached;
     if (tickOnly) { updateClockLabels(); return; }
     save();
+    if (state.ride.stage === 'arrived' || action === 'newRide') window.BoothyLiveMap?.stop();
     if (action === 'tick') {
       // Keep drafts intact when a reminder becomes due while someone is editing.
       $('#notice-region').innerHTML = notices(); $('#context-panel').innerHTML = context();
@@ -139,7 +140,8 @@
     if (state.ride.stage === 'detecting') return `<section class="card card-pad"><h2>Starting your demo…</h2>${button('cancelDetection', 'Cancel', 'outline full')}</section>`;
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
-      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="2" max="999" value="${c.duration}" required><span class="field-note">Your estimate for now. Live GPS is coming.</span></label>
+      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="2" max="999" value="${c.duration}" required><span class="field-note">Your estimate. Road-based timing is not connected yet.</span></label>
+      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Pin destination on map (optional)', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin saved on this device.' : 'OpenStreetMap shows the area you view.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
       <label class="field">Travelling as<select name="transport"><option value="passenger" ${c.transport !== 'car' ? 'selected' : ''}>Passenger</option><option value="car" ${c.transport === 'car' ? 'selected' : ''}>Driver</option></select></label>
@@ -163,6 +165,7 @@
       <p class="arrival-estimate">${real ? `<strong id="ride-eta">${remaining > 0 ? 'About ' + remaining + ' min left' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
       <p class="small-copy">${real ? 'Based on your estimate, not live GPS.' : 'Use the controls below to preview the reminders.'}</p>
       ${button('arrive', real ? 'I’ve arrived' : 'Preview arrival', 'primary full', '', 'pin')}
+      ${real ? `<div class="trip-secondary">${button('openTripMap', 'Open live map', 'outline full', '', 'pin')}</div>` : ''}
       <div class="trip-secondary">${button('openChecklist', 'Check my things', 'outline full', '', 'bag')}</div>
       <details class="form-details"><summary>Taking longer? Change the time</summary><form data-form="eta"><label class="field">Minutes left<input name="minutes" type="number" inputmode="numeric" min="1" max="999" value="${Math.max(1, remaining)}" required></label><button type="submit" class="button outline full">Update time</button></form></details>
       ${real ? '' : `<div class="simulation-controls"><div class="button-row">${button('advance', 'Skip 1 minute', 'outline')}${remaining > 2 ? button('nearArrival', 'Preview arrival reminder', 'outline') : ''}</div></div>`}</section>
@@ -264,6 +267,15 @@
     const control = e.target.closest('[data-action]');
     if (!control) return;
     const a = control.dataset.action;
+    if (a === 'openTripMap') {
+      const active = state.ride.stage === 'inTransit' && state.ride.clockMode === 'real';
+      const c = active ? state.ride : setupConfig();
+      await window.BoothyLiveMap?.open({ point: c.destinationPoint, keepTracking: active, onSelect(point) {
+        if (active && state.ride.stage === 'inTransit') send('setDestinationPoint', { point });
+        else { setupConfig().destinationPoint = point; render(); }
+        toast('Destination pin saved.');
+      } }); return;
+    }
     if (a === 'setupBack') { setupStep = 0; render(); return; }
     if (a === 'tryDemo') { setupDraft = { ...state.config, clockMode: 'simulation', destination: 'Demo destination', origin: 'Demo start', duration: 5, items: ['Phone', 'Bag'], transit: { ...state.config.transit, enabled: false } }; setupStep = 0; render(); return; }
     if (a === 'exitDemo') { setupDraft = null; setupStep = 0; render(); return; }
@@ -410,7 +422,7 @@
       send('saveParking', { location: text('location'), note: text('note') }); parkingPrompt = false; render(); toast('Parking note saved on this device.');
     }
   });
-  document.addEventListener('input', e => { if (e.target.closest('[data-form=setupRoute]') && e.target.name) setupConfig()[e.target.name] = e.target.type === 'checkbox' ? e.target.checked : e.target.name === 'duration' ? Number(e.target.value) : e.target.value; if (e.target.name === 'items' && e.target.closest('[data-form=setupItems]')) setupConfig().items = e.target.value.split(','); if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
+  document.addEventListener('input', e => { if (e.target.closest('[data-form=setupRoute]') && e.target.name) { if (e.target.name === 'destination') delete setupConfig().destinationPoint; setupConfig()[e.target.name] = e.target.type === 'checkbox' ? e.target.checked : e.target.name === 'duration' ? Number(e.target.value) : e.target.value; } if (e.target.name === 'items' && e.target.closest('[data-form=setupItems]')) setupConfig().items = e.target.value.split(','); if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
   document.addEventListener('change', e => {
     if (e.target.matches('[data-extra-reminder]')) e.target.closest('form').querySelector('fieldset').disabled = !e.target.checked;
     if (e.target.matches('[data-tone]')) window.BoothyDevice?.setOption('tone', e.target.value);
