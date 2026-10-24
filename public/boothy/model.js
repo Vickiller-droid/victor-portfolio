@@ -19,7 +19,9 @@
       s.ride.transit.status = 'due';
       event(s, 'In-transit reminder delivered');
     }
-    if (s.ride.preArrival?.status === 'scheduled' && remainingSeconds(s.ride) <= 120) {
+    const pre = s.ride.preArrival;
+    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= 120;
+    if (pre?.status === 'scheduled' && preDue) {
       s.ride.preArrival.status = 'due';
       s.ride.preArrival.deliveredAt = s.ride.elapsed;
       event(s, s.ride.clockMode === 'real' && remainingSeconds(s.ride) < 115 ? 'Belongings alert delivered · recovered after timer delay' : 'Belongings alert delivered · 2 minutes before estimated arrival');
@@ -115,6 +117,11 @@
       case 'ackPreArrival':
         if (r.stage !== 'inTransit' || r.preArrival.status !== 'due') break;
         r.preArrival.status = 'done'; event(s, 'Pre-arrival belongings alert acknowledged'); break;
+      case 'snoozePreArrival':
+        if (r.stage !== 'inTransit' || r.preArrival?.status !== 'due') break;
+        r.preArrival.status = 'scheduled';
+        r.preArrival.snoozeUntil = r.clockMode === 'real' ? Math.max(r.clockAt, Number(data.nowMs) || Date.now()) + 60000 : r.elapsed + 1;
+        event(s, 'Belongings alert snoozed for 1 minute'); break;
       case 'ackTransit':
         if (r.transit?.status !== 'due') break;
         r.transit.status = 'done'; event(s, 'In-transit reminder marked done'); break;
@@ -127,7 +134,7 @@
         finishArrival(s, data);
         break;
       case 'collect':
-        if (r.stage !== 'arrived') break;
+        if (!['inTransit', 'arrived'].includes(r.stage)) break;
         r.items = r.items.map(item => item.id === Number(data.id) ? { ...item, checked: !item.checked } : item);
         break;
       case 'ackEnd':
@@ -179,3 +186,4 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.BoothyModel = api;
 })(typeof window === 'object' ? window : globalThis);
+

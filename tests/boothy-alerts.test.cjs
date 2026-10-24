@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const source = fs.readFileSync(__dirname + '/../public/boothy/device.js', 'utf8');
 function setup(config = {}) {
-  const calls = { tones: 0, vibrations: 0, notifications: 0 };
+  const calls = { tones: 0, vibrations: 0, notifications: 0, stops: [], frequencies: [] };
   class Audio {
     constructor() { this.state = 'suspended'; this.currentTime = 0; this.destination = {}; }
     resume() {
@@ -12,7 +12,7 @@ function setup(config = {}) {
       if (config.reject) return Promise.reject(new Error('blocked'));
       return Promise.resolve().then(() => { this.state = 'running'; });
     }
-    createOscillator() { return { connect() {}, disconnect() {}, frequency: { setValueAtTime() {} }, start() { calls.tones++; }, stop() {} }; }
+    createOscillator() { return { connect() {}, disconnect() {}, frequency: { setValueAtTime(value) { calls.frequencies.push(value); } }, start() { calls.tones++; }, stop(at) { calls.stops.push(at); } }; }
     createGain() { return { connect() {}, disconnect() {}, gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } }; }
   }
   class Notification { static permission = config.permission || 'granted'; constructor() { calls.notifications++; } }
@@ -56,4 +56,26 @@ test('hung service worker cannot hang the test', async () => {
 });
 test('service worker notification path works', async () => {
   const { device, calls } = setup({ worker: true }); assert.equal((await device.test()).notification, 'requested'); assert.equal(calls.notifications, 1);
+});
+
+test('each built-in tune lasts 15 seconds and has a distinct melody', async () => {
+  const melodies = [];
+  for (const tone of ['chime', 'ripple', 'bright']) {
+    const {device, calls} = setup(); device.setOption('tone', tone); await device.test();
+    assert.equal(calls.stops.at(-1), 15); melodies.push(calls.frequencies.slice(0, 4).join(','));
+  }
+  assert.equal(new Set(melodies).size, 3);
+});
+test('stop sound cancels playback even while audio is resuming', async () => {
+  const {device, calls} = setup(); const pending = device.test(); device.stopSound(); await pending;
+  assert.equal(calls.tones, 0);
+});
+test('stop sound stops an active tone, and replacing it stops the old tone', async () => {
+  const {device, calls} = setup(); await device.test(); await device.test();
+  assert.ok(calls.stops.includes(undefined)); device.stopSound(); assert.equal(calls.stops.at(-1), undefined);
+});
+test('item confirmation is brief, respects sound off, and never interrupts a reminder', async () => {
+  const {device, calls} = setup(); await device.confirmItem(); assert.equal(calls.stops.at(-1), .42);
+  device.stopSound(); await device.test(); const count = calls.tones; await device.confirmItem(); assert.equal(calls.tones, count);
+  device.setOption('sound', false); await device.confirmItem(); assert.equal(calls.tones, count);
 });

@@ -14,6 +14,28 @@
   const clock = seconds => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   const isReal = () => (state.ride.clockMode || state.config.clockMode) === 'real';
   const tag = (kind, r = state.ride) => `boothy-${r.id || 'ride'}-${kind}${kind === 'before' ? '-' + (r.preArrival?.revision || 0) : ''}`;
+  let popupKind = null;
+  function closePopup() {
+    window.BoothyDevice?.stopSound();
+    const dialog = $('#belongings-popup');
+    if (dialog?.open) dialog.close();
+    popupKind = null;
+  }
+  function checklistMarkup() {
+    return state.ride.items.map(i => `<button type="button" class="check-item ${i.checked ? 'checked' : ''}" data-action="collect" data-id="${i.id}" aria-pressed="${i.checked}"><span class="check-box">${i.checked ? icon('check') : ''}</span>${escape(i.name)}${i.checked ? '<span class="checked-caption">Got it</span>' : ''}</button>`).join('');
+  }
+  function showPopup(kind) {
+    let dialog = $('#belongings-popup');
+    if (!dialog) {
+      dialog = document.createElement('dialog'); dialog.id = 'belongings-popup'; dialog.className = 'belongings-popup';
+      dialog.setAttribute('aria-labelledby', 'belongings-title');
+      document.body.append(dialog);
+      dialog.addEventListener('cancel', () => { window.BoothyDevice?.stopSound(); popupKind = null; });
+    }
+    popupKind = kind;
+    dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist" hidden></div><div class="button-row">${button('popupCheck', 'Check my things', 'primary full')}${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full', 'hidden')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
+    if (!dialog.open) dialog.showModal();
+  }
   function signal(title, body, kind) {
     window.BoothyDevice?.signal(title, body, tag(kind)).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
   }
@@ -27,6 +49,8 @@
     if (previous.transit?.status === 'due' && r.transit?.status !== 'due') window.BoothyDevice?.close(tag('transit', previous));
     if (r.end?.done && !previous.end?.done) window.BoothyDevice?.close(tag('end'));
     if (previous.etaReached && (!r.etaReached || r.stage === 'arrived')) window.BoothyDevice?.close(tag('eta', previous));
+    if (r.stage === 'arrived' && previous.stage !== 'arrived') showPopup('end');
+    else if (r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due') showPopup('before');
   }
   function updateClockLabels() {
     const seconds = M.remainingSeconds(state.ride);
@@ -160,9 +184,10 @@
     const prefs = device?.options() || {}, capabilities = device?.capabilities() || {};
     const notificationStatus = device?.status() || 'unavailable';
     return `<section class="card card-pad alert-settings"><div class="section-title">${mini('bell')}<div><h2>How should Boothy nudge you?</h2><p class="small-copy">In-app reminders are always on.</p></div></div>
-      <label class="checkbox-label"><input type="checkbox" data-alert="sound" ${prefs.sound ? 'checked' : ''} ${capabilities.sound ? '' : 'disabled'}><span>Play a short sound${capabilities.sound ? '' : ' · unavailable here'}</span></label>
+      <label class="checkbox-label"><input type="checkbox" data-alert="sound" ${prefs.sound ? 'checked' : ''} ${capabilities.sound ? '' : 'disabled'}><span>Play a reminder tone · 15 seconds${capabilities.sound ? '' : ' · unavailable here'}</span></label>
+      <label class="field">Reminder tone<select data-tone aria-label="Reminder tone">${(window.BoothyDevice?.tones() || []).map(t => `<option value="${t.id}" ${prefs.tone === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
       <label class="checkbox-label"><input type="checkbox" data-alert="vibration" ${prefs.vibration ? 'checked' : ''} ${capabilities.vibration ? '' : 'disabled'}><span>Vibrate${capabilities.vibration ? ' on supported devices' : ' · unavailable here'}</span></label>
-      <div class="button-row">${button('notifications', notificationStatus === 'enabled' ? 'Turn phone alerts off' : 'Enable phone alerts', 'outline small', notificationStatus === 'unavailable' || notificationStatus === 'blocked' ? 'disabled' : '', 'bell')}${button('testAlert', 'Test alert', 'outline small', '', 'check')}</div>
+      <div class="button-row">${button('notifications', notificationStatus === 'enabled' ? 'Turn phone alerts off' : 'Enable phone alerts', 'outline small', notificationStatus === 'unavailable' || notificationStatus === 'blocked' ? 'disabled' : '', 'bell')}${button('testAlert', 'Test alert', 'outline small', '', 'check')}${button('stopSound', 'Stop sound', 'outline small')}</div>
       <p class="status-caption">${notificationStatus === 'enabled' ? 'Phone notifications are enabled.' : notificationStatus === 'blocked' ? 'Phone alerts are blocked. Change this site’s notification permission in your browser settings.' : notificationStatus === 'unavailable' ? 'Phone alerts are unavailable in this browser. On iPhone, open Boothy from a Home Screen app to check support.' : 'Phone alerts ask for permission only when you enable them.'} Keep Boothy open for timely reminders; locked or closed pages cannot guarantee the alert schedule.</p></section>`;
   }
   function dateLabel(iso) {
@@ -185,7 +210,7 @@
     let result = '';
     if (r.stage === 'inTransit' && r.preArrival?.status === 'due') {
       const remaining = Math.ceil(M.remainingSeconds(r) / 60);
-      result += `<section class="reminder-alert pre-arrival-alert" role="alert"><div class="card-top"><span class="section-label">BEFORE YOU ARRIVE</span><span class="pill orange">${r.clockMode === 'real' ? 'Arrival approaching' : 'Alerted 2 min before'}</span></div><h2 class="reminder-message" ${r.clockMode === 'real' ? 'id="arrival-countdown"' : ''}>${r.clockMode === 'real' ? M.remainingSeconds(r) ? `${clock(M.remainingSeconds(r))} to estimated arrival. Get your belongings ready.` : 'Your arrival estimate has passed. Keep your belongings ready.' : `${remaining} ${remaining === 1 ? 'minute' : 'minutes'} to arrival. Get your belongings ready.`}</h2><p class="pre-arrival-message">${escape(r.end.message)}</p>${reason(r.end.reason)}<div class="item-chips">${r.items.map(i => `<span class="item-chip">${escape(i.name)}</span>`).join('')}</div><p class="small-copy">Have these ready before you step out. You’ll confirm each item when the ride ends.</p>${button('ackPreArrival', 'I’m getting ready', 'primary full', '', 'bag')}</section>`;
+      result += `<section class="reminder-alert pre-arrival-alert" role="alert"><div class="card-top"><span class="section-label">BEFORE YOU ARRIVE</span><span class="pill orange">${r.clockMode === 'real' ? 'Arrival approaching' : 'Alerted 2 min before'}</span></div><h2 class="reminder-message" ${r.clockMode === 'real' ? 'id="arrival-countdown"' : ''}>${r.clockMode === 'real' ? M.remainingSeconds(r) ? `${clock(M.remainingSeconds(r))} to estimated arrival. Get your belongings ready.` : 'Your arrival estimate has passed. Keep your belongings ready.' : `${remaining} ${remaining === 1 ? 'minute' : 'minutes'} to arrival. Get your belongings ready.`}</h2><p class="pre-arrival-message">${escape(r.end.message)}</p>${reason(r.end.reason)}<div class="item-chips">${r.items.map(i => `<span class="item-chip">${escape(i.name)}</span>`).join('')}</div><p class="small-copy">Have these ready before you step out. You’ll confirm each item when the ride ends.</p>${button('openChecklist', 'Check my things', 'primary full', '', 'bag')}</section>`;
     }
     if (r.stage === 'inTransit' && r.clockMode === 'real' && r.etaReached) result += `<section class="reminder-alert" role="alert"><span class="section-label">ARRIVAL CHECK</span><h2 class="reminder-message">Have you arrived?</h2><p class="help">Your estimated time has passed. If traffic changed the plan, update the arrival estimate on your ride.</p>${button('arrive', 'Yes · check my belongings', 'dark full', '', 'bag')}</section>`;
     if (r.transit?.status === 'due') result += `<section class="reminder-alert"><div class="card-top"><span class="section-label">${r.stage === 'arrived' ? 'UNHANDLED IN-TRANSIT REMINDER' : 'IN-TRANSIT REMINDER'}</span><span class="pill orange">Now due · ${r.transit.at} min</span></div><h2 class="reminder-message">${escape(r.transit.message)}</h2>${reason(r.transit.reason)}<div class="button-row">${button('ackTransit', 'Done', 'primary', '', 'check')}${r.stage === 'inTransit' ? button('snooze', 'Snooze 1 min', 'outline', '', 'clock') : ''}</div></section>`;
@@ -219,7 +244,7 @@
     $('#view').innerHTML = tab === 'reminders' ? remindersView() : tab === 'parking' ? parkingView() : state.ride.stage === 'inTransit' ? transitView() : state.ride.stage === 'arrived' ? arrivalView() : readyView();
     $('#context-panel').innerHTML = context();
     $('#storage-warning').hidden = storageOK;
-    if (action) document.querySelector(`[data-action="${action}"]${itemId !== undefined ? `[data-id="${itemId}"]` : ''}`)?.focus({ preventScroll: true });
+    if (action && !focus?.closest('#belongings-popup')) document.querySelector(`[data-action="${action}"]${itemId !== undefined ? `[data-id="${itemId}"]` : ''}`)?.focus({ preventScroll: true });
   }
   document.addEventListener('click', async e => {
     const navigation = e.target.closest('[data-tab]');
@@ -227,6 +252,16 @@
     const control = e.target.closest('[data-action]');
     if (!control) return;
     const a = control.dataset.action;
+    if (a === 'stopSound') { window.BoothyDevice?.stopSound(); toast('Sound stopped.'); return; }
+    if (a === 'popupDone') { const kind = popupKind; closePopup(); send(kind === 'end' ? 'ackEnd' : 'ackPreArrival'); return; }
+    if (a === 'popupClose') { closePopup(); return; }
+    if (a === 'openChecklist') { showPopup(state.ride.stage === 'arrived' ? 'end' : 'before'); document.querySelector('[data-action=popupCheck]').click(); return; }
+    if (a === 'popupCheck') {
+      window.BoothyDevice?.stopSound();
+      const list = $('#belongings-popup .popup-checklist'); list.hidden = false; list.innerHTML = checklistMarkup();
+      control.hidden = true; $('#belongings-popup [data-action=popupDone]').hidden = false; list.querySelector('button')?.focus(); return;
+    }
+    if (a === 'popupSnooze') { closePopup(); send('snoozePreArrival'); toast(isReal() ? 'I’ll remind you in 1 minute.' : 'Snoozed. Advance 1 minute to test it.'); return; }
     if (a === 'toggleTheme') { window.BoothyTheme?.toggle(); return; }
     if (a === 'chooseClock' && state.ride.stage === 'ready') {
       send('configure', { config: { ...state.config, clockMode: control.dataset.value === 'real' ? 'real' : 'simulation' } }); return;
@@ -279,7 +314,15 @@
     if (a === 'parkingPrompt' || a === 'dismissParking') { parkingPrompt = a === 'parkingPrompt'; render(); if (parkingPrompt) $('#notice-region').scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
     if (a === 'cancelDetection') { clearTimeout(detectionTimer); detectionTimer = null; }
     if (a === 'depart') window.BoothyDevice?.unlockAudio();
+    if (['ackTransit', 'ackPreArrival', 'ackEnd', 'snooze', 'arrive', 'newRide'].includes(a)) window.BoothyDevice?.stopSound();
+    const wasChecked = a === 'collect' && state.ride.items?.find(i => i.id === Number(control.dataset.id))?.checked;
     send(a, { id: control.dataset.id });
+    if (a === 'collect') {
+      const item = state.ride.items?.find(i => i.id === Number(control.dataset.id));
+      if (item?.checked && !wasChecked) window.BoothyDevice?.confirmItem();
+      const list = $('#belongings-popup .popup-checklist');
+      if (list && !list.hidden) { list.innerHTML = checklistMarkup(); list.querySelector(`[data-id="${control.dataset.id}"]`)?.focus(); }
+    }
     if (a === 'newRide') toast('Ready for another ride. Your parking note is still saved.');
     if (a === 'snooze') toast(isReal() ? 'Snoozed for 1 minute.' : 'Snoozed. Advance 1 minute to see the same reminder again.');
   });
@@ -313,6 +356,7 @@
   });
   document.addEventListener('input', e => { if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
   document.addEventListener('change', e => {
+    if (e.target.matches('[data-tone]')) window.BoothyDevice?.setOption('tone', e.target.value);
     if (e.target.dataset.alert) window.BoothyDevice?.setOption(e.target.dataset.alert, e.target.checked);
   });
   function syncClock() {
