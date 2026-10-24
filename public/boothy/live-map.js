@@ -34,7 +34,8 @@
     if (!dialog) return;
     const accuracy = latest.fix ? ' · ±' + Math.round(latest.fix.accuracy) + ' m' : '';
     dialog.querySelector('.map-status').textContent = (labels[latest.status] || labels.unavailable) + accuracy;
-    const d = latest.status === 'live' && latest.fix && target ? G.distance(latest.fix, target) : null;
+    const selected = pendingPoint || target;
+    const d = latest.status === 'live' && latest.fix && selected ? G.distance(latest.fix, selected) : null;
     dialog.querySelector('.map-distance').textContent = d === null ? '' : (d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m') + ' to your pin · straight-line distance';
     dialog.querySelector('[data-map=gps]').textContent = tracker.running() ? 'Stop live location' : 'Use my live location';
     dialog.querySelector('[data-map=center]').disabled = !latest.fix;
