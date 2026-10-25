@@ -1,19 +1,20 @@
 (function () {
   'use strict';
   const key = 'boothy-alert-options-v1';
-  let options = { sound: false, vibration: false, notifications: false, tone: 'chime' };
+  let options = { sound: false, vibration: false, notifications: Boolean(window.BoothyNative?.available), tone: 'chime' };
   try { options = { ...options, ...JSON.parse(localStorage.getItem(key) || '{}') }; } catch { /* In-app alerts remain available. */ }
+  if(window.BoothyBoot?.options)options={...options,...window.BoothyBoot.options};
   const tones = { chime: { name: 'Boothy Chime', notes: [659, 831, 988, 831], beat: .5 }, ripple: { name: 'Ripple', notes: [523, 659, 784, 1047], beat: .65 }, bright: { name: 'Bright', notes: [880, 660, 880, 1175], beat: .35 } };
   if (!tones[options.tone]) options.tone = 'chime';
-  let registration, audio, playback = 0, activeTag;
+  let registration, audio, playback = 0, activeTag, voiceTimer;
   const activeNodes = new Set();
   function stopSound(tag) {
     if (tag && tag !== activeTag) return;
-    playback++; activeTag = null;
+    playback++; activeTag = null; clearTimeout(voiceTimer); window.BoothyVoice?.stop(); window.BoothyNative?.stopSound();
     for (const node of activeNodes) { try { node.stop(); } catch {} }
     activeNodes.clear();
   }
-  if (navigator.serviceWorker && window.isSecureContext) {
+  if (!window.BoothyNative?.available && navigator.serviceWorker && window.isSecureContext) {
     registration = navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).catch(() => null);
   }
   function save() { try { localStorage.setItem(key, JSON.stringify(options)); } catch { /* Session preference only. */ } }
@@ -65,6 +66,7 @@
   }
   async function phoneNotification(title, body, tag, destination = {}) {
     if (!options.notifications) return 'off';
+    if (window.BoothyNative?.available) return await window.BoothyNative.notify(title, body, tag) ? 'requested' : 'failed';
     if (!window.Notification || !window.isSecureContext) return 'unavailable';
     if (Notification.permission !== 'granted') return 'blocked';
     try {
@@ -83,6 +85,7 @@
     } catch { return 'failed'; }
   }
   async function notify(title, body, tag, destination) {
+    if(window.BoothyNative?.available&&tag==='boothy-test'){const ok=await window.BoothyNative.test();return {sound:options.sound?(ok?'requested':'failed'):'off',vibration:options.vibration?(ok?'requested':'failed'):'off',notification:ok?'requested':'failed'};}
     // Start each channel independently, retaining the button's user activation.
     const sound = options.sound ? beep(false, tag) : Promise.resolve(null);
     let vibration = 'off';
@@ -94,9 +97,14 @@
       }
     }
     const [played, notification] = await Promise.all([sound, phoneNotification(title, body, tag, destination)]);
+    if (destination?.voiceText && window.BoothyVoice?.enabled()) {
+      const expected = playback;
+      voiceTimer = setTimeout(() => { if (expected === playback) window.BoothyVoice.speakText(destination.voiceText); }, played ? 15000 : 0);
+    }
     return { sound: played === null ? 'off' : played ? 'started' : 'failed', vibration, notification };
   }
   function status() {
+    if (window.BoothyNative?.available) return window.BoothyNative.capabilities().notifications ? 'enabled' : 'blocked';
     if (!window.Notification || !window.isSecureContext) return 'unavailable';
     if (Notification.permission === 'denied') return 'blocked';
     if (options.notifications && Notification.permission === 'granted') return 'enabled';
@@ -106,13 +114,15 @@
     options: () => ({ ...options }), status, unlockAudio, stopSound,
     tones: () => Object.entries(tones).map(([id, tone]) => ({ id, name: tone.name })),
     confirmItem: () => options.sound ? beep(true) : Promise.resolve(false),
-    capabilities: () => ({ sound: Boolean(window.AudioContext || window.webkitAudioContext), vibration: Boolean(navigator.vibrate), gps: Boolean(navigator.geolocation) }),
+    capabilities: () => ({ sound: Boolean(window.AudioContext || window.webkitAudioContext), vibration: Boolean(window.BoothyNative?.available || navigator.vibrate), gps: Boolean(navigator.geolocation) }),
     setOption(name, value) {
       if (name === 'tone' && tones[value]) { stopSound(); options.tone = value; save(); }
       if (['sound', 'vibration'].includes(name)) { options[name] = Boolean(value); if (name === 'sound') { if (value) unlockAudio(); else stopSound(); } save(); }
     },
     async toggleNotifications() {
+      if(window.BoothyNative?.available){await window.BoothyNative.requestPermissions();return status();}
       if (status() === 'enabled') { options.notifications = false; save(); return 'off'; }
+      if (window.BoothyNative?.available) { await window.BoothyNative.requestPermissions(); options.notifications = Boolean(window.BoothyNative.capabilities().notifications); save(); return status(); }
       if (status() === 'unavailable' || status() === 'blocked') return status();
       // Called directly from an explicit button click, before any other await.
       const permission = await Notification.requestPermission();
@@ -130,8 +140,9 @@
     },
     captureParking() {
       return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) { reject(new Error('This browser cannot capture a location. You can still save a parking note.')); return; }
-        navigator.geolocation.getCurrentPosition(position => resolve({ lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy }), error => {
+        const geo=window.BoothyNative?.geolocation || navigator.geolocation;
+        if (!geo) { reject(new Error('This browser cannot capture a location. You can still save a parking note.')); return; }
+        geo.getCurrentPosition(position => resolve({ lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy }), error => {
           reject(new Error(error.code === 1 ? 'Location access was declined. Your saved parking note is still kept.' : error.code === 3 ? 'Location capture timed out. Try again outdoors, or save a note.' : 'Your location is unavailable. Try again outdoors, or save a note.'));
         }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
       });

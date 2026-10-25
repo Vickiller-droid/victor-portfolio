@@ -4,7 +4,7 @@
   const M = window.BoothyModel;
   let storageOK = true, state;
   try { state = M.restore(localStorage.getItem(KEY)); } catch { state = M.initial(); storageOK = false; }
-  let tab = ['ride', 'reminders', 'parking'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ride';
+  let tab = ['ride', 'things', 'reminders', 'parking', 'help'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ride';
   let setupStep = 0, setupDraft = null;
   let phoneTestTimer = null, phoneTestStatus = '';
   let detectionTimer, toastTimer, parkingPrompt = false, capturingParking = false;
@@ -18,6 +18,7 @@
   const tag = (kind, r = state.ride) => `boothy-${r.id || 'ride'}-${kind}${kind === 'before' ? '-' + (r.preArrival?.revision || 0) : ''}`;
   let popupKind = null;
   function closePopup() {
+    window.BoothyVoice?.stop();
     window.BoothyDevice?.stopSound();
     const dialog = $('#belongings-popup');
     if (dialog?.open) dialog.close();
@@ -32,13 +33,15 @@
       dialog = document.createElement('dialog'); dialog.id = 'belongings-popup'; dialog.className = 'belongings-popup';
       dialog.setAttribute('aria-labelledby', 'belongings-title');
       document.body.append(dialog);
-      dialog.addEventListener('cancel', () => { window.BoothyDevice?.stopSound(); popupKind = null; });
+      dialog.addEventListener('cancel', () => { send('interactReminder'); window.BoothyDevice?.stopSound(); popupKind = null; });
     }
     popupKind = kind;
     dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist" hidden></div><div class="button-row">${button('popupCheck', 'Check my things', 'primary full')}${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full', 'hidden')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
     if (!dialog.open) dialog.showModal();
   }
   function revealChecklist() {
+    send('interactReminder');
+    window.BoothyVoice?.stop();
     window.BoothyDevice?.stopSound();
     const list = $('#belongings-popup .popup-checklist');
     if (!list) return;
@@ -67,11 +70,13 @@
     const cancel = panel.querySelector('[data-action=cancelPhoneTest]'); if (cancel) cancel.hidden = phoneTestTimer === null;
   }
   function signal(title, body, kind) {
-    window.BoothyDevice?.signal(title, body, tag(kind), { kind, rideId: state.ride.id }).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
+    if (window.BoothyNative?.ownsAlerts(state.ride)) return;
+    window.BoothyDevice?.signal(title, body, tag(kind), { kind, rideId: state.ride.id, voiceText: ['before', 'end'].includes(kind) ? window.BoothyVoice?.message(state.ride.items, kind === 'end') : '' }).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
   }
   function signalChanges(previous) {
     const r = state.ride;
-    if (r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due') signal('Get your belongings ready', `${r.end.message}. ${r.end.reason} Items: ${r.items.map(i => i.name).join(', ')}.`, 'before');
+    if (r.preArrival?.status === 'due' && (previous.preArrival?.status !== 'due' || (r.preArrival.repeatCount || 0) > (previous.preArrival?.repeatCount || 0))) signal('Get your belongings ready', `${r.end.message}. ${r.end.reason} Items: ${r.items.map(i => i.name).join(', ')}.`, 'before');
+    if (r.trackingWarningSent && !previous.trackingWarningSent) signal('Check your arrival time', 'Live timing has paused. Reconnect location or enter a new time.', 'tracking');
     if (r.transit?.status === 'due' && previous.transit?.status !== 'due') signal(r.transit.message, r.transit.reason, 'transit');
     if (r.etaReached && !previous.etaReached && !(r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due')) signal('Have you arrived?', 'Your estimated arrival time has passed. Confirm arrival or update your estimate.', 'eta');
     if (r.stage === 'arrived' && previous.stage !== 'arrived') signal('Before you leave the vehicle', `${r.end.message}. ${r.end.reason} Collect: ${r.items.map(i => i.name).join(', ')}.`, 'end');
@@ -85,7 +90,7 @@
   function updateClockLabels() {
     const seconds = M.remainingSeconds(state.ride);
     const countdown = $('#ride-countdown'); if (countdown) countdown.textContent = clock(seconds);
-    const eta = $('#ride-eta'); if (eta) eta.textContent = seconds > 0 ? `About ${Math.ceil(seconds / 60)} min left` : 'Estimate reached';
+    const eta = $('#ride-eta'); if (eta) eta.textContent = !M.routeFresh(state.ride) ? 'Live timing paused' : seconds > 0 ? `About ${Math.ceil(seconds / 60)} min left` : 'Estimate reached';
     const alert = $('#arrival-countdown'); if (alert) alert.textContent = seconds > 0 ? `${clock(seconds)} to estimated arrival. Get your belongings ready.` : 'Your arrival estimate has passed. Keep your belongings ready.';
   }
   function toast(message) {
@@ -95,16 +100,22 @@
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { storageOK = false; }
     $('#storage-warning').hidden = storageOK;
+    window.BoothyNative?.sync(state, window.BoothyDevice?.options(), window.BoothyVoice?.enabled());
   }
   function send(action, data) {
+    if (window.BoothyNative?.available) {
+      if (action === 'tick') window.BoothyNative.tick();
+      else window.BoothyNative.command(action, data || {}).then(ok => { if (!ok) toast('That change could not be saved. Check phone reminder permissions and try again.'); });
+      return;
+    }
     const previous = state.ride;
     const previousStage = state.ride.stage;
     const previousAlert = state.ride.preArrival?.status;
     state = M.transition(state, action, { nowMs: Date.now(), ...data });
-    const tickOnly = action === 'tick' && previous.elapsed === state.ride.elapsed && previous.transit.status === state.ride.transit.status && previous.preArrival.status === state.ride.preArrival.status && previous.etaReached === state.ride.etaReached;
+    const tickOnly = action === 'tick' && previous.elapsed === state.ride.elapsed && previous.transit.status === state.ride.transit.status && previous.preArrival.status === state.ride.preArrival.status && previous.preArrival.repeatCount === state.ride.preArrival.repeatCount && previous.etaReached === state.ride.etaReached && previous.trackingWarningSent === state.ride.trackingWarningSent;
     if (tickOnly) { updateClockLabels(); return; }
     save();
-    if (state.ride.stage === 'arrived' || action === 'newRide') window.BoothyLiveMap?.stop();
+    if (state.ride.stage === 'arrived' || ['newRide', 'cancelRide'].includes(action)) window.BoothyLiveMap?.stop();
     if (action === 'tick') {
       // Keep drafts intact when a reminder becomes due while someone is editing.
       $('#notice-region').innerHTML = notices(); $('#context-panel').innerHTML = context();
@@ -122,6 +133,7 @@
     }
   }
   function changeTab(next) {
+    $('#app-menu')?.close();
     tab = next; location.hash = next; render();
     $('#main').focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -140,19 +152,19 @@
     if (state.ride.stage === 'detecting') return `<section class="card card-pad"><h2>Starting your demo…</h2>${button('cancelDetection', 'Cancel', 'outline full')}</section>`;
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
-      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="2" max="999" value="${c.duration}" required><span class="field-note">Your estimate. Road-based timing is not connected yet.</span></label>
-      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Pin destination on map (optional)', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'OpenStreetMap shows the area you view.'}</p></div>`}
+      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll remind you 3 minutes before this time.</span></label>
+      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Choose on map', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'Optional. You can start with just your time estimate.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
       <label class="field">Travelling as<select name="transport"><option value="passenger" ${c.transport !== 'car' ? 'selected' : ''}>Passenger</option><option value="car" ${c.transport === 'car' ? 'selected' : ''}>Driver</option></select></label>
       <label class="checkbox-label"><input name="saveParking" type="checkbox" ${c.saveParking ? 'checked' : ''}><span>Save a parking note when I arrive</span></label>
       <label class="field">Parking note<input name="parkingNote" value="${escape(c.parkingNote)}" maxlength="160" placeholder="e.g. Near the entrance"></label></details>
       <button class="button primary full" type="submit">Next: your things ${icon('arrow')}</button></form></section>
-      ${demo ? button('exitDemo', 'Use for a real trip', 'text-button') : `<div class="demo-entry">${button('tryDemo', 'Try a demo first', 'text-button')}</div>`}`;
+      ${window.BoothyNative?.available ? '' : demo ? button('exitDemo', 'Use for a real trip', 'text-button') : `<div class="demo-entry">${button('tryDemo', 'Try a demo first', 'text-button')}</div>`}`;
     return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupItems">
       <label class="field">What are you taking?<input name="items" value="${escape(c.items.join(', '))}" required maxlength="400" placeholder="Phone, bag, keys"><span class="field-note">Separate items with commas.</span></label>
-      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder 2 minutes before arrival</span></div>
-      <p class="small-copy">Keep Boothy open. Background alerts are still being verified.</p><p class="alert-summary">Sound ${window.BoothyDevice?.options().sound ? 'on' : 'off'} · Phone alerts ${window.BoothyDevice?.status() === 'enabled' ? 'on' : 'off'}</p>
+      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder 3 minutes before arrival</span></div>
+      <p class="small-copy">${window.BoothyNative?.available ? (window.BoothyNative.ready() ? "Phone reminders are ready." : "Enable phone reminders in Sound & notifications before starting.") : "Keep Boothy open for timely alerts."}</p><p class="alert-summary">Sound ${window.BoothyDevice?.options().sound ? 'on' : 'off'} · Phone alerts ${window.BoothyDevice?.status() === 'enabled' ? 'on' : 'off'}</p>
       <div class="button-row">${button('setupBack', 'Back', 'outline')}<button type="submit" class="button primary">${demo ? 'Start demo' : 'Start ride'} ${icon('arrow')}</button></div>
       </form></section><button class="text-button" data-tab="reminders">Sound & notification settings ${icon('arrow')}</button>`;
   }
@@ -161,15 +173,16 @@
     const r = state.ride, real = r.clockMode === 'real', remaining = Math.ceil(M.remainingSeconds(r) / 60);
     const checked = r.items.filter(i => i.checked).length;
     return `<section class="card card-pad active-trip"><div class="card-top"><span class="section-label">${real ? 'ON YOUR WAY' : 'DEMO TRIP'}</span><span class="pill">${checked}/${r.items.length} items ready</span></div>
-      <h2 class="destination-title">${escape(r.destination)}</h2>
-      <p class="arrival-estimate">${real ? `<strong id="ride-eta">${remaining > 0 ? 'About ' + remaining + ' min left' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
-      <p class="small-copy">${real ? 'Based on your estimate, not live GPS.' : 'Use the controls below to preview the reminders.'}</p>
+      <span class="trip-emblem">${icon("bag")}</span><h2 class="destination-title">${escape(r.destination)}</h2>
+      <p class="arrival-estimate">${real ? `<strong id="ride-eta">${!M.routeFresh(r) ? 'Live timing paused' : remaining > 0 ? 'About ' + remaining + ' min left' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
+      <p class="small-copy">${real ? (r.needsResume ? 'Your trip time needs checking. Enter a new time below to resume reminders.' : r.etaSource === 'route' ? (M.routeFresh(r) ? 'Updated from your road route.' : 'Reconnect location or enter a new time below. Arrival warnings are paused.') : 'Your time estimate.') : 'Use the controls below to preview the reminders.'}</p>
+      <div class="timing-strip"><span>3-min warning</span><span>1-min snooze</span></div>
       ${button('arrive', real ? 'I’ve arrived' : 'Preview arrival', 'primary full', '', 'pin')}
       ${real ? `<div class="trip-secondary">${button('openTripMap', 'Open live map', 'outline full', '', 'pin')}</div>` : ''}
       <div class="trip-secondary">${button('openChecklist', 'Check my things', 'outline full', '', 'bag')}</div>
       <details class="form-details"><summary>Taking longer? Change the time</summary><form data-form="eta"><label class="field">Minutes left<input name="minutes" type="number" inputmode="numeric" min="1" max="999" value="${Math.max(1, remaining)}" required></label><button type="submit" class="button outline full">Update time</button></form></details>
-      ${real ? '' : `<div class="simulation-controls"><div class="button-row">${button('advance', 'Skip 1 minute', 'outline')}${remaining > 2 ? button('nearArrival', 'Preview arrival reminder', 'outline') : ''}</div></div>`}</section>
-      <details class="form-details"><summary>Trip details</summary><p class="small-copy">${escape(r.origin)} → ${escape(r.destination)}</p>${eventLog()}</details>`;
+      ${real ? '' : `<div class="simulation-controls"><div class="button-row">${button('advance', 'Skip 1 minute', 'outline')}${remaining > 3 ? button('nearArrival', 'Preview arrival reminder', 'outline') : ''}</div></div>`}</section>
+      <details class="form-details"><summary>Trip details</summary><p class="small-copy">${escape(r.origin)} → ${escape(r.destination)}</p>${eventLog()}${button('confirmCancel', 'Cancel this trip', 'text-button danger-action')}</details>`;
   }
 
   function eventLog() {
@@ -188,14 +201,18 @@
       <details class="form-details"><summary>Your arrival reminder</summary><p class="small-copy">${escape(r.end.message)}<br>${escape(r.end.reason)}</p></details></section>`;
   }
 
-  function remindersView() {
+  function remindersView() { return alertOptions(); }
+  function thingsView() {
     const c = state.config, enabled = c.transit.enabled === true;
-    return `${alertOptions()}<details class="card card-pad optional-reminders"><summary>Extra reminder during the ride (optional)</summary><form data-form="extraReminder">
-      <label class="checkbox-label"><input type="checkbox" name="enabled" data-extra-reminder ${enabled ? 'checked' : ''}><span>Add an extra reminder</span></label>
-      <fieldset ${enabled ? '' : 'disabled'}><label class="field">Remind me to<input name="transitMessage" value="${escape(c.transit.message)}" required maxlength="140" placeholder="e.g. Call someone"></label>
-      <label class="field">Why?<input name="transitReason" value="${escape(c.transit.reason)}" required maxlength="280"></label>
-      <label class="field">Minutes after starting<input name="at" type="number" min="1" max="999" value="${c.transit.at}" required></label></fieldset>
-      <button type="submit" class="button outline full">Save reminder</button></form></details>`;
+    const active = ['inTransit', 'arrived'].includes(state.ride.stage);
+    const items = active ? state.ride.items.map(i => i.name) : setupConfig().items;
+    return `<section class="card card-pad"><h2>Your belongings</h2><form data-form="belongings"><label class="field">What are you taking?<input name="items" value="${escape(items.join(', '))}" maxlength="400" required><span class="field-note">Separate items with commas. Up to 12.</span></label><button class="button primary full" type="submit">Save my things</button></form></section>
+    <details class="card card-pad optional-reminders"><summary>Another reminder along the way</summary><form data-form="extraReminder"><label class="checkbox-label"><input type="checkbox" name="enabled" data-extra-reminder ${enabled ? 'checked' : ''}><span>Add an extra reminder</span></label><fieldset ${enabled ? '' : 'disabled'}><label class="field">Remind me to<input name="transitMessage" value="${escape(c.transit.message)}" required maxlength="140" placeholder="e.g. Call someone"></label><label class="field">Why?<input name="transitReason" value="${escape(c.transit.reason)}" required maxlength="280"></label><label class="field">Minutes after starting<input name="at" type="number" min="1" max="999" value="${c.transit.at}" required></label></fieldset><button type="submit" class="button outline full">Save reminder</button></form></details>`;
+  }
+  function helpView() {
+    return `<section class="card card-pad"><h2>One trip. Three steps.</h2><ol class="help-list"><li>Set your destination and arrival estimate.</li><li>Add the things you’re taking.</li><li>Start the ride. When Boothy reminds you, check each item before leaving.</li></ol></section>
+    <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is 3 minutes before your estimate. The tone lasts 15 seconds. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
+    <a class="button outline full" href="mailto:alabivictordaniel@gmail.com?subject=Boothy%20feedback">Send Victor feedback ${icon('arrow')}</a>`;
   }
   function alertOptions() {
     const device = window.BoothyDevice;
@@ -205,13 +222,16 @@
       <label class="checkbox-label"><input type="checkbox" data-alert="sound" ${prefs.sound ? 'checked' : ''} ${capabilities.sound ? '' : 'disabled'}><span>Play a reminder tone · 15 seconds${capabilities.sound ? '' : ' · unavailable here'}</span></label>
       <label class="field">Reminder tone<select data-tone aria-label="Reminder tone">${(window.BoothyDevice?.tones() || []).map(t => `<option value="${t.id}" ${prefs.tone === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
       <label class="checkbox-label"><input type="checkbox" data-alert="vibration" ${prefs.vibration ? 'checked' : ''} ${capabilities.vibration ? '' : 'disabled'}><span>Vibrate${capabilities.vibration ? ' on supported devices' : ' · unavailable here'}</span></label>
-      <div class="button-row">${button('notifications', notificationStatus === 'enabled' ? 'Turn phone alerts off' : 'Enable phone alerts', 'outline small', notificationStatus === 'unavailable' || notificationStatus === 'blocked' ? 'disabled' : '', 'bell')}${button('testAlert', 'Test alert', 'outline small', '', 'check')}${button('stopSound', 'Stop sound', 'outline small')}</div>
-      <p class="status-caption">${notificationStatus === 'enabled' ? 'Phone notifications are enabled.' : notificationStatus === 'blocked' ? 'Phone alerts are blocked. Change this site’s notification permission in your browser settings.' : notificationStatus === 'unavailable' ? 'Phone alerts are unavailable in this browser. On iPhone, open Boothy from a Home Screen app to check support.' : 'Phone alerts ask for permission only when you enable them.'} Keep Boothy open for timely reminders; locked or closed pages cannot guarantee the alert schedule.</p>
+      <div class="button-row">${button('notifications', window.BoothyNative?.available ? 'Check phone permissions' : notificationStatus === 'enabled' ? 'Turn phone alerts off' : 'Enable phone alerts', 'outline small', !window.BoothyNative?.available && (notificationStatus === 'unavailable' || notificationStatus === 'blocked') ? 'disabled' : '', 'bell')}${button('testAlert', 'Test alert', 'outline small', '', 'check')}${button('stopSound', 'Stop sound', 'outline small')}</div>
+      ${window.BoothyNative?.available ? `<div class="native-readiness"><p class="small-copy">${window.BoothyNative.ready() ? 'Android reminders are enabled.' : 'Allow alarms and notifications so Boothy can remind you with the screen locked.'}</p>${button('nativePermissions', 'Set up phone reminders', 'outline full')}</div>` : ''}
+      <p class="status-caption">${notificationStatus === 'enabled' ? 'Phone notifications are enabled.' : notificationStatus === 'blocked' ? 'Phone alerts are blocked. Enable notifications in phone or browser settings.' : notificationStatus === 'unavailable' ? 'Phone alerts are unavailable in this browser. On iPhone, open Boothy from a Home Screen app to check support.' : 'Phone alerts ask for permission only when you enable them.'} ${window.BoothyNative?.available ? "Android schedules these reminders. Reopen Boothy after restarting your phone or force-stopping the app." : "Keep this browser page open for timely alerts."}</p>
+      <div class="divider"></div><label class="checkbox-label"><input type="checkbox" data-voice ${window.BoothyVoice?.enabled() ? 'checked' : ''} ${window.BoothyVoice?.supported() ? '' : 'disabled'}><span>Speak my belongings reminder</span></label><p class="small-copy">${window.BoothyVoice?.supported() ? 'Uses your phone’s current audio output. Try it with your headphones.' : 'Voice isn’t available on this device.'}</p><div class="button-row">${button('testVoice', 'Preview voice', 'outline small', window.BoothyVoice?.supported() ? '' : 'disabled')}${button('stopVoice', 'Stop voice', 'outline small')}</div><p class="status-caption voice-status" role="status"></p>
+      ${window.BoothyNative?.available ? `<details class="form-details"><summary>Reminder diagnostics</summary>${button("nativeDiagnostics","Show recent checks","outline full")}<p class="status-caption native-diagnostics" role="status"></p></details>` : ""}
       <details class="form-details notification-diagnostics"><summary>Test phone notifications</summary>
-      <p class="small-copy">Send a test in 20 seconds, then switch to another app or lock your screen. Keep this tab open. Your phone controls the notification sound and banner.</p>
+      <p class="small-copy">${window.BoothyNative?.available ? "Schedule a test, then lock your screen. Android will trigger it in 20 seconds using your selected tone and vibration settings." : "Send a test in 20 seconds, then switch apps or lock your screen. Keep this tab open. Your phone controls the notification sound and banner."}</p>
       <div class="button-row">${button('testPhoneLater', 'Test phone alert in 20 seconds', 'outline full', notificationStatus !== 'enabled' || phoneTestTimer !== null ? 'disabled' : '')}${button('cancelPhoneTest', 'Cancel test', 'outline small', phoneTestTimer === null ? 'hidden' : '')}</div>
       <p class="status-caption phone-test-status" role="status" aria-live="polite">${escape(phoneTestStatus)}</p>
-      <details class="form-details"><summary>No banner? Check these settings</summary><p class="small-copy">1. In Chrome, open this site’s page information → Permissions → Notifications → Allow. Then enable phone alerts above.</p><p class="small-copy">2. In Android Settings → Apps → Chrome (or Boothy) → Notifications, allow notifications and choose an alerting category. Enable “Pop on screen” or “Floating notifications” if available. Names vary by phone.</p><p class="small-copy">3. Check Do Not Disturb. Pull down the notification tray: an alert may be there even without a banner.</p><p class="small-copy">This test uses the open page’s timer. A delayed or missing test means background delivery is not yet proven on your phone.</p></details></details></section>`;
+      <details class="form-details"><summary>No banner? Check these settings</summary><p class="small-copy">1. In Chrome, open this site’s page information → Permissions → Notifications → Allow. Then enable phone alerts above.</p><p class="small-copy">2. In Android Settings → Apps → Chrome (or Boothy) → Notifications, allow notifications and choose an alerting category. Enable “Pop on screen” or “Floating notifications” if available. Names vary by phone.</p><p class="small-copy">3. Check Do Not Disturb. Pull down the notification tray: an alert may be there even without a banner.</p><p class="small-copy">${window.BoothyNative?.available ? "This test uses Android’s alarm system. Diagnostics show whether Android received the alarm and started playback; you still need to confirm that you heard it." : "This test uses the open page’s timer. A delayed or missing test means background delivery is not yet proven on your phone."}</p></details></details></section>`;
   }
   function dateLabel(iso) {
     const date = new Date(iso);
@@ -246,17 +266,20 @@
     const focus = document.activeElement;
     const action = focus?.dataset?.action, itemId = focus?.dataset?.id;
     const titles = {
-      ride: ['', state.ride.stage === 'inTransit' ? 'Your trip' : state.ride.stage === 'arrived' ? 'Before you go' : 'Let’s get you ready.', ''],
-      reminders: ['', 'Alert settings', ''],
+      ride: ['YOUR TRAVEL COMPANION', state.ride.stage === 'inTransit' ? 'Your trip' : state.ride.stage === 'arrived' ? 'Before you go' : 'Take the ride. Keep your things.', state.ride.stage === 'ready' ? 'A timely reminder before you step out.' : ''],
+      things: ['', 'Your things, remembered.', ''],
+      help: ['', 'A little help.', ''],
+      reminders: ['', 'Make it your reminder.', ''],
       parking: ['', 'Your parking spot', '']
     };
-    const title = titles[tab];
+    const title = titles[tab] || titles.ride;
+    $('#main').dataset.screen = tab === 'ride' ? state.ride.stage : tab;
     const mode = $('#mode-notice');
     if (mode) { mode.hidden = true; mode.innerHTML = `<span class="simulation-dot"></span><strong>${isReal() ? 'Ride timer mode' : 'Simulation mode'}</strong><span>${isReal() ? 'Your manual arrival estimate · keep Boothy open for timely alerts.' : 'Trips and locations are simulated. Test every state at your pace.'}</span>`; }
     $('#page-eyebrow').textContent = title[0]; $('#page-title').textContent = title[1]; $('#page-subtitle').textContent = title[2];
     document.querySelectorAll('.nav-item').forEach(el => { el.classList.toggle('active', el.dataset.tab === tab); if (el.dataset.tab === tab) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); });
     $('#notice-region').innerHTML = notices();
-    $('#view').innerHTML = tab === 'reminders' ? remindersView() : tab === 'parking' ? parkingView() : state.ride.stage === 'inTransit' ? transitView() : state.ride.stage === 'arrived' ? arrivalView() : readyView();
+    $('#view').innerHTML = tab === 'reminders' ? remindersView() : tab === 'things' ? thingsView() : tab === 'help' ? helpView() : tab === 'parking' ? parkingView() : state.ride.stage === 'inTransit' ? transitView() : state.ride.stage === 'arrived' ? arrivalView() : readyView();
     $('#context-panel').innerHTML = context();
     $('#storage-warning').hidden = storageOK;
     if (action && !focus?.closest('#belongings-popup')) document.querySelector(`[data-action="${action}"]${itemId !== undefined ? `[data-id="${itemId}"]` : ''}`)?.focus({ preventScroll: true });
@@ -264,15 +287,36 @@
   document.addEventListener('click', async e => {
     const navigation = e.target.closest('[data-tab]');
     if (navigation) { changeTab(navigation.dataset.tab); return; }
+    const themeChoice = e.target.closest('[data-theme-choice]');
+    if (themeChoice) { window.BoothyTheme?.set(themeChoice.dataset.themeChoice); return; }
     const control = e.target.closest('[data-action]');
     if (!control) return;
     const a = control.dataset.action;
+    if (a === 'openMenu') { window.BoothyTheme?.sync(); $('#app-menu').showModal(); return; }
+    if (a === 'closeMenu') { $('#app-menu').close(); return; }
+    if (a === 'nativeDiagnostics') { const entries=await window.BoothyNative?.diagnostics(); const out=$('.native-diagnostics'); if(out) out.textContent=Array.isArray(entries) ? entries.slice(0,12).map(e=>new Date(e.time).toLocaleTimeString()+' · '+e.event).join(' / ') : 'Could not load diagnostics.';return; }
+    if (a === 'nativePermissions') { window.BoothyNative?.requestPermissions(); return; }
+    if (a === 'testVoice') {
+      const result = $('.voice-status'); if (result) result.textContent = 'Starting voice…';
+      const items = state.ride.items || setupConfig().items.map(name => ({ name, checked: false }));
+      const ok = await window.BoothyVoice?.speak(items, false, true);
+      if (result?.isConnected) result.textContent = ok ? 'Voice started. Check your speaker or connected headphones.' : 'Voice could not start. Check your device’s speech and volume settings.';
+      return;
+    }
+    if (a === 'stopVoice') { window.BoothyVoice?.stop(); return; }
+    if (a === 'confirmCancel') {
+      let dialog = $('#cancel-trip');
+      if (!dialog) { dialog = document.createElement('dialog'); dialog.id = 'cancel-trip'; dialog.className = 'belongings-popup'; dialog.setAttribute('aria-labelledby', 'cancel-title'); document.body.append(dialog); }
+      dialog.innerHTML = `<h2 id="cancel-title">Cancel this trip?</h2><p class="small-copy">This stops its reminders and location tracking.</p><div class="button-row">${button('keepTrip','Keep trip','outline')}${button('cancelRide','Cancel trip','primary')}</div>`; dialog.showModal(); return;
+    }
+    if (a === 'keepTrip') { $('#cancel-trip')?.close(); return; }
+    if (a === 'cancelRide') { $('#cancel-trip')?.close(); closePopup(); setupDraft = null; setupStep = 0; send('cancelRide'); return; }
     if (a === 'openTripMap') {
       const active = state.ride.stage === 'inTransit' && state.ride.clockMode === 'real';
       const c = active ? state.ride : setupConfig();
-      await window.BoothyLiveMap?.open({ point: c.destinationPoint, keepTracking: active, onSelect(point) {
+      await window.BoothyLiveMap?.open({ point: c.destinationPoint, keepTracking: active, rideId: active ? state.ride.id : '', onRoute(result) { if (state.ride.id === result.rideId) send('updateRouteEta', result); }, onRouteStatus(status) { if (status !== 'live' && state.ride.stage === 'inTransit') send('pauseRoute'); }, onStopRoute() { if (state.ride.stage === 'inTransit' && state.ride.etaSource === 'route') send('pauseRoute'); }, onSelect(point, label) {
         if (active && state.ride.stage === 'inTransit') send('setDestinationPoint', { point });
-        else { const draft = setupConfig(); draft.destinationPoint = point; if (!draft.destination.trim()) draft.destination = 'Pinned destination'; render(); }
+        else { const draft = setupConfig(); draft.destinationPoint = point; if (label) draft.destination = label; if (!draft.destination.trim()) draft.destination = 'Pinned destination'; render(); }
         toast(active ? 'Destination pin saved.' : 'Destination pin selected.');
       } }); return;
     }
@@ -285,9 +329,9 @@
       closePopup(); send('ackEnd'); return;
     }
     if (a === 'newRide') { setupStep = 0; setupDraft = null; }
-    if (a === 'stopSound') { window.BoothyDevice?.stopSound(); toast('Sound stopped.'); return; }
+    if (a === 'stopSound') { send('interactReminder'); window.BoothyVoice?.stop(); window.BoothyDevice?.stopSound(); toast('Sound stopped.'); return; }
     if (a === 'popupDone') { const kind = popupKind; closePopup(); send(kind === 'end' ? 'ackEnd' : 'ackPreArrival'); return; }
-    if (a === 'popupClose') { closePopup(); return; }
+    if (a === 'popupClose') { send('interactReminder'); closePopup(); return; }
     if (a === 'openChecklist') { showPopup(state.ride.stage === 'arrived' ? 'end' : 'before'); revealChecklist(); return; }
     if (a === 'popupCheck') {
       revealChecklist(); return;
@@ -298,11 +342,13 @@
       send('configure', { config: { ...state.config, clockMode: control.dataset.value === 'real' ? 'real' : 'simulation' } }); return;
     }
     if (a === 'cancelPhoneTest') {
+      window.BoothyNative?.cancelTest();
       clearTimeout(phoneTestTimer); phoneTestTimer = null; phoneTestStatus = 'Test cancelled.'; updatePhoneTest(); return;
     }
     if (a === 'testPhoneLater') {
       if (phoneTestTimer !== null) return;
       if (window.BoothyDevice?.status() !== 'enabled') { toast('Enable phone alerts first.'); return; }
+      if (window.BoothyNative?.available) { const ok=await window.BoothyNative.testLater(); if(ok)phoneTestTimer=setTimeout(()=>{phoneTestTimer=null;updatePhoneTest();},22000); phoneTestStatus=ok ? 'Android scheduled the test. Lock your screen now, then check sound, vibration and the notification tray.' : 'Enable alarms and notifications first.';updatePhoneTest();return; }
       const expectedAt = Date.now() + 20000;
       phoneTestStatus = 'Test set. Switch apps now, or lock your screen. Keep Boothy’s tab open.';
       phoneTestTimer = setTimeout(async () => {
@@ -319,7 +365,7 @@
     if (a === 'notifications') {
       let status;
       try { status = await window.BoothyDevice?.toggleNotifications(); } catch { toast('Notification permission could not be requested. Check the settings below.'); return; }
-      toast(status === 'enabled' ? 'Phone alerts enabled. Keep Boothy open for the ride timer.' : status === 'off' ? 'Phone alerts are off.' : status === 'blocked' ? 'Notification access is blocked. In-app alerts are still on.' : 'Phone alerts are unavailable in this browser.');
+      toast(status === 'enabled' ? (window.BoothyNative?.available ? 'Android notifications are enabled.' : 'Phone alerts enabled. Keep Boothy open for the ride timer.') : status === 'off' ? 'Phone alerts are off.' : status === 'blocked' ? 'Notification access is blocked. In-app alerts are still on.' : 'Phone alerts are unavailable in this browser.');
       const panel = document.querySelector('.alert-settings'); if (panel) panel.outerHTML = alertOptions(); else render(); return;
     }
     if (a === 'testAlert') {
@@ -377,7 +423,7 @@
     if (a === 'newRide') toast('Ready for your next trip.');
     if (a === 'snooze') toast(isReal() ? 'Snoozed for 1 minute.' : 'Snoozed. Advance 1 minute to see the same reminder again.');
   });
-  document.addEventListener('submit', e => {
+  document.addEventListener('submit', async e => {
     const form = e.target.closest('[data-form]');
     if (!form) return;
     e.preventDefault();
@@ -392,9 +438,14 @@
       if (!requireText('destination')) return;
       setupDraft = { ...setupConfig(), destination: text('destination'), duration: Number(f('duration').value), origin: text('origin') || 'Starting point', transport: f('transport').value, saveParking: f('saveParking').checked, parkingNote: text('parkingNote') };
       setupStep = 1; render(); $('#view input')?.focus();
+    } else if (form.dataset.form === 'belongings') {
+      const items = [...new Set(text('items').split(',').map(i => i.trim().slice(0, 50)).filter(Boolean))].slice(0,12);
+      if (!items.length) { f('items').setCustomValidity('Add at least one item.'); f('items').reportValidity(); return; }
+      send('updateItems', { items }); if (setupDraft) setupDraft.items = items; toast('Your things are saved.');
     } else if (form.dataset.form === 'setupItems') {
       const items = [...new Set(text('items').split(',').map(i => i.trim()).filter(Boolean))].slice(0, 12);
       if (!items.length) { f('items').setCustomValidity('Add at least one item.'); f('items').reportValidity(); return; }
+      if (window.BoothyNative?.available && setupConfig().clockMode === 'real' && !window.BoothyNative.ready()) { toast('Set up phone reminders from the menu first.'); changeTab('reminders'); return; }
       window.BoothyDevice?.unlockAudio();
       send('configure', { config: { ...setupConfig(), items } });
       send('depart');
@@ -416,7 +467,7 @@
       send('configure', { config: { ...state.config, items, transit: { message: text('transitMessage'), reason: text('transitReason'), at: Number(f('at').value) }, end: { message: text('endMessage'), reason: text('endReason') } }, updateTransit: state.ride.stage === 'inTransit' });
       toast('Reminders saved with their original reasons.'); changeTab('ride');
     } else if (form.dataset.form === 'eta') {
-      send('updateEta', { minutes: Number(f('minutes').value) }); toast('Time updated.');
+      window.BoothyGoogleMap?.stopRouting(); send('updateEta', { minutes: Number(f('minutes').value) }); toast('Time updated.');
     } else if (form.dataset.form === 'parking') {
       if (!requireText('location')) return;
       send('saveParking', { location: text('location'), note: text('note') }); parkingPrompt = false; render(); toast('Parking note saved on this device.');
@@ -424,19 +475,39 @@
   });
   document.addEventListener('input', e => { if (e.target.closest('[data-form=setupRoute]') && e.target.name) { if (e.target.name === 'destination') delete setupConfig().destinationPoint; setupConfig()[e.target.name] = e.target.type === 'checkbox' ? e.target.checked : e.target.name === 'duration' ? Number(e.target.value) : e.target.value; } if (e.target.name === 'items' && e.target.closest('[data-form=setupItems]')) setupConfig().items = e.target.value.split(','); if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
   document.addEventListener('change', e => {
+    if (e.target.matches('[data-voice]')) window.BoothyVoice?.setEnabled(e.target.checked);
     if (e.target.matches('[data-extra-reminder]')) e.target.closest('form').querySelector('fieldset').disabled = !e.target.checked;
     if (e.target.matches('[data-tone]')) window.BoothyDevice?.setOption('tone', e.target.value);
     if (e.target.dataset.alert) window.BoothyDevice?.setOption(e.target.dataset.alert, e.target.checked);
+    window.BoothyNative?.sync(state, window.BoothyDevice?.options(), window.BoothyVoice?.enabled());
   });
   function syncClock() {
     if (state.ride.clockMode === 'real' && state.ride.stage === 'inTransit') send('tick', { nowMs: Date.now() });
   }
+  document.addEventListener('boothynativestate', event => {
+    const restored=M.restore(event.detail), previous=state.ride;
+    const meaningful=JSON.stringify({...previous,clockAt:0,elapsed:0})!==JSON.stringify({...restored.ride,clockAt:0,elapsed:0});
+    const configChanged=JSON.stringify(state.config)!==JSON.stringify(restored.config)||JSON.stringify(state.parking)!==JSON.stringify(restored.parking);
+    state=restored;
+    if(previous.id===state.ride.id && state.ride.items?.some(i=>i.checked&&previous.items?.some(old=>old.id===i.id&&!old.checked)))window.BoothyDevice?.confirmItem();
+    try { localStorage.setItem(KEY,JSON.stringify(state)); } catch {}
+    if(meaningful||configChanged)render();else updateClockLabels();
+    if(previous.stage!==state.ride.stage&&['arrived','ready'].includes(state.ride.stage))window.BoothyLiveMap?.stop();
+    if(state.ride.stage==='arrived'&&previous.stage!=='arrived')showPopup('end');
+    else if(state.ride.preArrival?.status==='due'&&previous.preArrival?.status!=='due')showPopup('before');
+    const list=$('#belongings-popup .popup-checklist');if(list&&!list.hidden&&state.ride.items)list.innerHTML=checklistMarkup();
+  });
+  document.addEventListener('boothynativecapabilities',()=>{if(tab==='reminders')render();});
   document.addEventListener('visibilitychange', () => { if (!document.hidden) syncClock(); });
   window.addEventListener('storage', e => {
-    if (e.key === KEY && e.newValue) { state = M.restore(e.newValue); render(); syncClock(); }
+    if (!window.BoothyNative?.available && e.key === KEY && e.newValue) { state = M.restore(e.newValue); render(); syncClock(); }
   });
-  window.addEventListener('hashchange', () => { if (openNotification()) return; const next = location.hash.slice(1); if (['ride', 'reminders', 'parking'].includes(next) && next !== tab) { tab = next; render(); } });
+  window.addEventListener('hashchange', () => { if (openNotification()) return; const next = location.hash.slice(1); if (['ride', 'things', 'reminders', 'parking', 'help'].includes(next) && next !== tab) { tab = next; render(); } });
+  window.BoothyBack=()=>{const dialog=document.querySelector('dialog[open]');if(!dialog)return false;if(dialog.id==='belongings-popup'){send('interactReminder');closePopup();}else dialog.close();return true;};
   window.BoothyTheme?.sync();
+  const nativeSaved = window.BoothyNative?.restore();
+  if (nativeSaved) state = M.restore(nativeSaved);
+  else window.BoothyNative?.init(state,window.BoothyDevice?.options(),window.BoothyVoice?.enabled());
   render();
   if (state.ride.stage === 'detecting') send('depart');
   syncClock();

@@ -3,7 +3,7 @@
   const G = window.BoothyLocation;
   let dialog, map, marker, accuracyCircle, pin, pendingPoint, target, onSelect;
   let latest = { status: 'off', fix: null }, follow = true, loading = null, keepTracking = false;
-  const tracker = G.createTracker(navigator.geolocation, update);
+  const tracker = G.createTracker(window.BoothyNative?.geolocation || navigator.geolocation, update);
   const labels = { off: 'GPS is off.', locating: 'Finding your location…', live: 'Live location', imprecise: 'Location is approximate. Move outdoors for a better fix.', stale: 'Location has not updated. Keep Boothy open and check GPS.', denied: 'Location is blocked. Allow it in this site’s permissions, then try again.', timeout: 'GPS is taking longer. Try again outdoors.', unavailable: 'Location is unavailable. Your trip timer still works.', unsupported: 'This browser cannot provide location.' };
   function ensureDialog() {
     if (dialog) return;
@@ -51,6 +51,8 @@
     });
   }
   async function open(options) {
+    const cfg = await window.BoothyGoogleMap?.config();
+    if (cfg?.provider === "google" && cfg.browserKey) return window.BoothyGoogleMap.open(options, cfg);
     ensureDialog(); target = G.point(options.point); pendingPoint = target; onSelect = options.onSelect; keepTracking = Boolean(options.keepTracking);
     if (!dialog.open) dialog.showModal();
     paint();
@@ -89,8 +91,8 @@
     if (pin) pin.setLatLng([value.lat, value.lng]);
     else pin = L.circleMarker([value.lat, value.lng], { radius: 10, color: '#fff', weight: 3, fillColor: '#e65d27', fillOpacity: 1 }).addTo(map).bindTooltip('Destination pin');
   }
-  function stop() { tracker.stop(); if (dialog?.open) dialog.close(); }
-  window.addEventListener('pagehide', stop);
+  function stop() { window.BoothyGoogleMap?.stop(); tracker.stop(); if (dialog?.open) dialog.close(); }
+  window.addEventListener('pagehide', () => { if(!window.BoothyNative?.available)stop(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { tracker.refresh(); paint(); } });
   setInterval(() => tracker.refresh(), 10000);
   window.BoothyLiveMap = { open, stop };

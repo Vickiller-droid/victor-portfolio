@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "config": {
+    "origin": "",
+    "destination": "",
+    "duration": 15,
+    "clockMode": "real",
+    "transport": "passenger",
+    "items": [
+      "Phone",
+      "Bag",
+      "Keys"
+    ],
+    "transit": {
+      "enabled": false,
+      "message": "",
+      "reason": "",
+      "at": 2
+    },
+    "end": {
+      "message": "Check your things",
+      "reason": "Make sure nothing is left behind."
+    },
+    "saveParking": false,
+    "parkingNote": ""
+  },
+  "ride": {
+    "stage": "ready",
+    "elapsed": 0,
+    "events": []
+  },
+  "parking": null
+}

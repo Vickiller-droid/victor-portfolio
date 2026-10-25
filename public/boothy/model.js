@@ -13,18 +13,32 @@
     ride: { stage: 'ready', elapsed: 0, events: [] }, parking: null
   });
   const event = (s, message) => { s.ride.events.unshift({ minute: s.ride.elapsed, message }); s.ride.events = s.ride.events.slice(0, 15); };
+  const routeFresh = (r, now = r.clockAt) => !r.needsResume && (r.etaSource !== 'route' || (!r.routePaused && Number.isFinite(r.routeUpdatedAt) && now - r.routeUpdatedAt <= 90000));
   const deliver = s => {
+    if (s.ride.needsResume) return;
+    const fresh = routeFresh(s.ride);
+    if (!fresh && !s.ride.trackingWarningSent) { s.ride.trackingWarningSent = true; event(s, 'Live timing paused · reconnect location or enter a new time'); }
     const elapsedMinutes = s.ride.clockMode === 'real' ? (s.ride.clockAt - s.ride.startedAt) / 60000 : s.ride.elapsed;
     if (s.ride.transit?.status === 'scheduled' && elapsedMinutes >= s.ride.transit.at) {
       s.ride.transit.status = 'due';
       event(s, 'In-transit reminder delivered');
     }
     const pre = s.ride.preArrival;
-    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= 120;
-    if (pre?.status === 'scheduled' && preDue) {
+    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= 180;
+    if (pre?.status === 'scheduled' && preDue && (fresh || pre.snoozeUntil != null)) {
       s.ride.preArrival.status = 'due';
       s.ride.preArrival.deliveredAt = s.ride.elapsed;
-      event(s, s.ride.clockMode === 'real' && remainingSeconds(s.ride) < 115 ? 'Belongings alert delivered · recovered after timer delay' : 'Belongings alert delivered · 2 minutes before estimated arrival');
+      s.ride.preArrival.deliveredAtMs = s.ride.clockAt;
+      s.ride.preArrival.repeatCount = s.ride.preArrival.repeatCount || 0;
+      delete s.ride.preArrival.snoozeUntil;
+      event(s, s.ride.clockMode === 'real' && remainingSeconds(s.ride) < 175 ? 'Belongings alert delivered · recovered after timer delay' : 'Belongings alert delivered · 3 minutes before estimated arrival');
+    }
+    if (pre?.status === 'due' && fresh && !pre.interacted && (pre.repeatCount || 0) === 0 && pre.deliveredAt != null) {
+      const age = s.ride.clockMode === 'real' ? (s.ride.clockAt - (pre.deliveredAtMs || s.ride.clockAt)) / 1000 : (s.ride.elapsed - pre.deliveredAt) * 60;
+      if (age >= 60 && !s.ride.items.every(item => item.checked)) {
+        pre.repeatCount = 1;
+        event(s, 'Belongings reminder repeated once');
+      }
     }
   };
   function remainingSeconds(r) {
@@ -34,7 +48,7 @@
     const r = s.ride;
     r.stage = 'inTransit';
     r.origin = s.config.origin; r.destination = s.config.destination;
-    r.duration = Math.max(2, Math.min(999, Number(s.config.duration) || 5));
+    r.duration = Math.max(3, Math.min(999, Number(s.config.duration) || 5));
     r.clockMode = s.config.clockMode === 'real' ? 'real' : 'simulation';
     r.transport = s.config.transport === 'passenger' ? 'passenger' : 'car';
     r.startedAt = Number(data.nowMs) || Date.now(); r.clockAt = r.startedAt;
@@ -57,7 +71,7 @@
     if (r.preArrival.status === 'scheduled') r.preArrival.status = 'missed';
     if (r.preArrival.status === 'due') r.preArrival.status = 'closed';
     r.arrivedAt = data.now || new Date().toISOString();
-    event(s, 'Arrival detected · belongings and ride-end reminder delivered');
+    event(s, 'Arrival confirmed · check belongings');
     if (r.saveParking) {
       s.parking = { location: r.destination, note: r.parkingNote, savedAt: r.arrivedAt, source: r.clockMode === 'real' ? 'note' : 'simulation' };
       event(s, 'Parking location saved');
@@ -90,14 +104,14 @@
         if (r.elapsed >= r.duration) finishArrival(s, data);
         break;
       case 'nearArrival':
-        if (r.stage !== 'inTransit' || r.clockMode === 'real' || r.elapsed >= r.duration - 2) break;
-        r.elapsed = r.duration - 2; deliver(s); break;
+        if (r.stage !== 'inTransit' || r.clockMode === 'real' || r.elapsed >= r.duration - 3) break;
+        r.elapsed = r.duration - 3; deliver(s); break;
       case 'tick':
         if (r.stage !== 'inTransit' || r.clockMode !== 'real') break;
         r.clockAt = Math.max(r.clockAt, Number(data.nowMs) || Date.now());
         r.elapsed = Math.floor((r.clockAt - r.startedAt) / 60000);
         deliver(s);
-        if (remainingSeconds(r) === 0 && !r.etaReached) {
+        if (routeFresh(r) && remainingSeconds(r) === 0 && !r.etaReached) {
           r.etaReached = true; event(s, 'Estimated arrival reached · waiting for your confirmation');
         }
         break;
@@ -111,22 +125,53 @@
           r.etaAt = r.clockAt + minutes * 60000;
           r.duration = (r.etaAt - r.startedAt) / 60000;
         } else r.duration = r.elapsed + minutes;
-        r.etaReached = false;
-        if (minutes > 2) r.preArrival = { status: 'scheduled', deliveredAt: null, revision: (r.preArrival.revision || 0) + 1 };
+        r.etaReached = false; r.etaSource = 'manual'; r.routePaused = false; r.needsResume = false; r.trackingWarningSent = false; delete r.routeUpdatedAt;
+        if (minutes > 3) r.preArrival = { status: 'scheduled', deliveredAt: null, revision: (r.preArrival.revision || 0) + 1 };
         event(s, 'Arrival estimate updated · ' + minutes + ' minutes remaining'); deliver(s);
         break;
       }
       case 'setDestinationPoint': {
         const p = data.point;
-        if (r.stage === 'inTransit' && p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180) { r.destinationPoint = { lat: p.lat, lng: p.lng }; s.config.destinationPoint = { ...r.destinationPoint }; }
+        if (r.stage === 'inTransit' && p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180) { r.destinationPoint = { lat: p.lat, lng: p.lng }; s.config.destinationPoint = { ...r.destinationPoint }; if (r.etaSource === 'route') { r.routePaused = true; deliver(s); } }
         break;
       }
+      case 'interactReminder':
+        if (r.preArrival?.status === 'due') r.preArrival.interacted = true;
+        break;
+      case 'updateRouteEta': {
+        if (r.stage !== 'inTransit' || r.clockMode !== 'real' || data.rideId !== r.id) break;
+        const duration = Number(data.seconds), observedAt = Number(data.observedAt), now = Number(data.nowMs) || Date.now();
+        if (!Number.isFinite(duration) || duration < 0 || duration > 86400 || !Number.isFinite(observedAt) || now - observedAt > 45000 || observedAt > now + 5000 || observedAt <= (r.routeUpdatedAt || 0) || (data.destinationPoint && (data.destinationPoint.lat !== r.destinationPoint?.lat || data.destinationPoint.lng !== r.destinationPoint?.lng))) break;
+        r.clockAt = Math.max(r.clockAt, now);
+        r.etaAt = observedAt + duration * 1000;
+        r.etaSource = 'route'; r.routeUpdatedAt = observedAt; r.routePaused = false; r.needsResume = false; r.trackingWarningSent = false;
+        r.duration = (r.etaAt - r.startedAt) / 60000;
+        r.etaReached = remainingSeconds(r) === 0;
+        deliver(s); break;
+      }
+      case 'pauseRoute':
+      case 'useManualEta':
+        if (r.stage === 'inTransit' && r.etaSource === 'route') { r.routePaused = true; deliver(s); }
+        break;
+      case 'updateItems': {
+        const items = Array.isArray(data.items) ? [...new Set(data.items.map(x => String(x).trim().slice(0, 50)).filter(Boolean))].slice(0, 12) : [];
+        if (!items.length) break;
+        s.config.items = items;
+        if (['inTransit', 'arrived'].includes(r.stage)) {
+          r.items = items.map((name, id) => ({ id, name, checked: r.items.some(old => old.name === name && old.checked) }));
+          if (r.stage === 'arrived') r.end.done = false;
+        }
+        break;
+      }
+      case 'cancelRide':
+        if (['inTransit', 'detecting'].includes(r.stage)) s.ride = { stage: 'ready', elapsed: 0, events: [] };
+        break;
       case 'ackPreArrival':
         if (r.stage !== 'inTransit' || r.preArrival.status !== 'due') break;
         r.preArrival.status = 'done'; event(s, 'Pre-arrival belongings alert acknowledged'); break;
       case 'snoozePreArrival':
         if (r.stage !== 'inTransit' || r.preArrival?.status !== 'due') break;
-        r.preArrival.status = 'scheduled';
+        r.preArrival.status = 'scheduled'; r.preArrival.interacted = false; r.preArrival.repeatCount = 1;
         r.preArrival.snoozeUntil = r.clockMode === 'real' ? Math.max(r.clockAt, Number(data.nowMs) || Date.now()) + 60000 : r.elapsed + 1;
         event(s, 'Belongings alert snoozed for 1 minute'); break;
       case 'ackTransit':
@@ -143,6 +188,7 @@
       case 'collect':
         if (!['inTransit', 'arrived'].includes(r.stage)) break;
         r.items = r.items.map(item => item.id === Number(data.id) ? { ...item, checked: !item.checked } : item);
+        if (r.preArrival) r.preArrival.interacted = true;
         break;
       case 'ackEnd':
         if (r.stage !== 'arrived' || r.end.done) break;
@@ -176,7 +222,7 @@
       if (s.version !== 1 || !s.config || !s.ride || !['ready', 'detecting', 'inTransit', 'arrived'].includes(s.ride.stage)) return initial();
       if (typeof s.config.origin !== 'string' || typeof s.config.destination !== 'string' || !Array.isArray(s.config.items) || !s.config.items.every(i => typeof i === 'string') || !s.config.transit || !s.config.end) return initial();
       if (['inTransit', 'arrived'].includes(s.ride.stage) && (!s.ride.transit || !s.ride.end || !Array.isArray(s.ride.items))) return initial();
-      s.config.duration = Math.max(2, Math.min(999, Number(s.config.duration) || 5));
+      s.config.duration = Math.max(3, Math.min(999, Number(s.config.duration) || 5));
       s.config.clockMode = s.config.clockMode === 'real' ? 'real' : 'simulation';
       s.config.transport = s.config.transport === 'passenger' ? 'passenger' : 'car';
       if (['inTransit', 'arrived'].includes(s.ride.stage)) {
@@ -189,7 +235,7 @@
       return s;
     } catch { return initial(); }
   }
-  const api = { initial, transition, restore, remainingSeconds };
+  const api = { initial, transition, restore, remainingSeconds, routeFresh };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.BoothyModel = api;
 })(typeof window === 'object' ? window : globalThis);

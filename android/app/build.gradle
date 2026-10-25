@@ -1,0 +1,38 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'dev.boothy.app'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'dev.boothy.app'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.2.0-pilot'
+        buildConfigField 'String', 'MAPS_KEY', '"' + (System.getenv('BOOTHY_GOOGLE_MAPS_ANDROID_KEY') ?: '').replace('\\','\\\\').replace('"','\\"') + '"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { coreLibraryDesugaringEnabled true; sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets { main.assets.srcDir layout.buildDirectory.dir('generated/boothy-assets') }
+    testOptions { unitTests.returnDefaultValues = true; unitTests.includeAndroidResources = true }
+}
+tasks.register('bundleBoothy', Sync) {
+    from '../../public/boothy'
+    into layout.buildDirectory.dir('generated/boothy-assets/boothy')
+    exclude 'sw.js', 'manifest.webmanifest'
+    filesMatching('index.html') { filter { line -> line.contains('<script src="theme.js') ? '  <script src="android-bootstrap.js"></script>\n' + line : line } }
+}
+tasks.named('preBuild') { dependsOn 'bundleBoothy' }
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'androidx.activity:activity:1.10.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+}
+tasks.withType(Test).configureEach {
+    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+    ['https.proxyHost','https.proxyPort','http.proxyHost','http.proxyPort','javax.net.ssl.trustStore'].each { key ->
+        if (System.getProperty(key)) systemProperty key, System.getProperty(key)
+    }
+}
