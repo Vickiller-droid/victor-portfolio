@@ -16,7 +16,7 @@ public class AlertService extends Service {
   private AudioManager manager;
   private AudioFocusRequest focus;
   private PowerManager.WakeLock wake;
-  private boolean registered, destroyed;
+  private boolean registered, destroyed, continueTone;
   private String words = "";
   private int generation;
   private final AudioAttributes attributes =
@@ -102,6 +102,7 @@ public class AlertService extends Service {
       handler.postDelayed(this::stopSelf, 1800);
       return START_NOT_STICKY;
     }
+    continueTone = prefs.optBoolean("sound") && !preview && !words.isBlank();
     if (prefs.optBoolean("sound") && !preview) {
       playTone(prefs.optString("tone", "chime"));
       handler.postDelayed(
@@ -110,7 +111,7 @@ public class AlertService extends Service {
             releaseTrack();
             speakOrFinish();
           },
-          15000);
+          words.isBlank() ? 15000 : 1200);
     } else speakOrFinish();
     return START_NOT_STICKY;
   }
@@ -148,7 +149,7 @@ public class AlertService extends Service {
               .build();
       track.write(pcm, 0, count);
       track.play();
-      TripStore.note(this, "15-second tone playback started");
+      TripStore.note(this, "Reminder tone playback started");
     } catch (Exception e) {
       TripStore.note(this, "Tone playback failed");
     }
@@ -163,17 +164,17 @@ public class AlertService extends Service {
     speech =
         new TextToSpeech(
             this,
-            status -> {
+            status -> handler.post(() -> {
               if (destroyed || token != generation || speech == null) return;
               if (status != TextToSpeech.SUCCESS) {
-                TripStore.note(this, "Speech engine unavailable");
-                stopSelf();
+                TripStore.note(this, "Speech engine unavailable · tone fallback");
+                finishSpeech();
                 return;
               }
               speech.setAudioAttributes(attributes);
               if (speech.setLanguage(Locale.UK) < 0) {
-                TripStore.note(this, "English voice is not installed");
-                stopSelf();
+                TripStore.note(this, "English voice is not installed · tone fallback");
+                finishSpeech();
                 return;
               }
               speech.setSpeechRate(.92f);
@@ -186,7 +187,7 @@ public class AlertService extends Service {
                     public void onDone(String id) {
                       handler.post(
                           () -> {
-                            if (token == generation) stopSelf();
+                            if (token == generation) finishSpeech();
                           });
                     }
 
@@ -203,7 +204,15 @@ public class AlertService extends Service {
                 TripStore.note(this, "Voice request failed");
                 stopSelf();
               }
-            });
+            }));
+  }
+
+  private void finishSpeech() {
+    if (continueTone) {
+      continueTone = false;
+      playTone(TripEngine.obj(TripStore.read(this), "options").optString("tone", "chime"));
+      handler.postDelayed(this::stopSelf, 12000);
+    } else stopSelf();
   }
 
   private void releaseTrack() {

@@ -6,8 +6,8 @@ android {
         applicationId 'dev.boothy.app'
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName '0.2.0-pilot'
+        versionCode 2
+        versionName '0.2.1-pilot'
         buildConfigField 'String', 'MAPS_KEY', '"' + (System.getenv('BOOTHY_GOOGLE_MAPS_ANDROID_KEY') ?: '').replace('\\','\\\\').replace('"','\\"') + '"'
     }
     buildFeatures { buildConfig true }

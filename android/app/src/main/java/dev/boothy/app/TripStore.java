@@ -88,6 +88,7 @@ public final class TripStore {
             "interactReminder")
         .contains(action)) c.getSystemService(android.app.NotificationManager.class).cancel(10);
     Alarms.schedule(c, result.state());
+    if (!result.alerts().isEmpty()) note(c, "Trip alert due: " + String.join(",", result.alerts()));
     if (!result.alerts().isEmpty()) Alerts.deliver(c, result.state(), result.alerts());
     MainActivity.publish(c);
     return result.state();

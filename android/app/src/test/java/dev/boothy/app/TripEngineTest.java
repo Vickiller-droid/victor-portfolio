@@ -229,4 +229,20 @@ public class TripEngineTest {
     s = route(s, 0, 600).state();
     assertTrue(tick(s, 120).alerts().contains("transit"));
   }
+  @Test public void shortTripWarnsAfterOneMinute() throws Exception {
+    JSONObject s = initial();
+    s.getJSONObject("config").put("duration", 3);
+    TripEngine.Result start = TripEngine.apply(s, "depart", data(), NOW);
+    assertFalse(start.alerts().contains("before"));
+    assertFalse(tick(start.state(), 59).alerts().contains("before"));
+    assertTrue(tick(start.state(), 60).alerts().contains("before"));
+  }
+  @Test public void arrivalDoesNotAlarmForCollectedItems() throws Exception {
+    JSONObject s = ride();
+    JSONArray items = r(s).getJSONArray("items");
+    for (int i=0;i<items.length();i++) items.getJSONObject(i).put("checked", true);
+    TripEngine.Result arrival = TripEngine.apply(s, "arrive", data(), NOW + 60000);
+    assertFalse(arrival.alerts().contains("end"));
+    assertTrue(r(arrival.state()).getJSONObject("end").getBoolean("done"));
+  }
 }

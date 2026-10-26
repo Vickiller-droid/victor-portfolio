@@ -4,7 +4,7 @@
   let dialog, map, marker, accuracyCircle, pin, pendingPoint, target, onSelect;
   let latest = { status: 'off', fix: null }, follow = true, loading = null, keepTracking = false;
   const tracker = G.createTracker(window.BoothyNative?.geolocation || navigator.geolocation, update);
-  const labels = { off: 'GPS is off.', locating: 'Finding your location…', live: 'Live location', imprecise: 'Location is approximate. Move outdoors for a better fix.', stale: 'Location has not updated. Keep Boothy open and check GPS.', denied: 'Location is blocked. Allow it in this site’s permissions, then try again.', timeout: 'GPS is taking longer. Try again outdoors.', unavailable: 'Location is unavailable. Your trip timer still works.', unsupported: 'This browser cannot provide location.' };
+  const labels = { off: 'GPS is off.', locating: 'Finding your location…', live: 'Live location', imprecise: 'Location is approximate. Move outdoors for a better fix.', stale: 'Location has not updated. Keep Boothy open and check GPS.', denied: window.BoothyNative?.available ? 'Location is blocked. Open Android Settings → Apps → Boothy Pilot → Permissions → Location, then try again.' : 'Location is blocked. Allow it in this site’s permissions, then try again.', timeout: 'GPS is taking longer. Try again outdoors.', unavailable: 'Location is unavailable. Your trip timer still works.', unsupported: 'This browser cannot provide location.' };
   function ensureDialog() {
     if (dialog) return;
     dialog = document.createElement('dialog'); dialog.className = 'live-map-dialog'; dialog.setAttribute('aria-labelledby', 'live-map-title');

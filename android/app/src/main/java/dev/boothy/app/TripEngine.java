@@ -278,7 +278,8 @@ public final class TripEngine {
           JSONObject t = obj(r, "transit");
           if ("scheduled".equals(t.optString("status"))) put(t, "status", "missed");
           put(obj(r, "preArrival"), "status", "closed");
-          alerts.add("end");
+          if (!allChecked(r)) alerts.add("end");
+          else put(obj(r, "end"), "done", true);
           if (r.optBoolean("saveParking")) {
             JSONObject p = new JSONObject();
             put(p, "location", r.optString("destination"));
@@ -335,6 +336,13 @@ public final class TripEngine {
     return new Result(s, alerts);
   }
 
+  // Short trips still get preparation time without alarming at departure.
+  static long warningAt(JSONObject r) {
+    long start = r.optLong("startedAt"), eta = r.optLong("etaAt");
+    long lead = Math.min(180000L, Math.max(0L, (eta - start) * 2 / 3));
+    return eta - lead;
+  }
+
   static void tick(JSONObject r, long now, List<String> alerts) {
     put(r, "clockAt", now);
     put(r, "elapsed", Math.max(0, (now - r.optLong("startedAt")) / 60000));
@@ -351,7 +359,7 @@ public final class TripEngine {
       alerts.add("transit");
       log(r, "During-ride reminder");
     }
-    long warning = p.has("snoozeUntil") ? p.optLong("snoozeUntil") : r.optLong("etaAt") - 180000;
+    long warning = p.has("snoozeUntil") ? p.optLong("snoozeUntil") : warningAt(r);
     if ("scheduled".equals(p.optString("status"))
         && (fresh || p.has("snoozeUntil"))
         && now >= warning) {
@@ -389,7 +397,7 @@ public final class TripEngine {
     if ("scheduled".equals(p.optString("status")) && (fresh || p.has("snoozeUntil")))
       next =
           Math.min(
-              next, p.has("snoozeUntil") ? p.optLong("snoozeUntil") : r.optLong("etaAt") - 180000);
+              next, p.has("snoozeUntil") ? p.optLong("snoozeUntil") : warningAt(r));
     if (fresh
         && "due".equals(p.optString("status"))
         && !p.optBoolean("interacted")

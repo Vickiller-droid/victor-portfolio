@@ -152,7 +152,7 @@
     if (state.ride.stage === 'detecting') return `<section class="card card-pad"><h2>Starting your demo…</h2>${button('cancelDetection', 'Cancel', 'outline full')}</section>`;
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
-      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll remind you 3 minutes before this time.</span></label>
+      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll remind you before arrival: 3 minutes ahead on longer trips, 2 minutes ahead on a 3-minute trip.</span></label>
       ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Choose on map', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'Optional. You can start with just your time estimate.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
@@ -163,7 +163,7 @@
       ${window.BoothyNative?.available ? '' : demo ? button('exitDemo', 'Use for a real trip', 'text-button') : `<div class="demo-entry">${button('tryDemo', 'Try a demo first', 'text-button')}</div>`}`;
     return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupItems">
       <label class="field">What are you taking?<input name="items" value="${escape(c.items.join(', '))}" required maxlength="400" placeholder="Phone, bag, keys"><span class="field-note">Separate items with commas.</span></label>
-      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder 3 minutes before arrival</span></div>
+      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder ${Math.min(3, Number(c.duration) * 2 / 3).toFixed(0)} minutes before arrival</span></div>
       <p class="small-copy">${window.BoothyNative?.available ? (window.BoothyNative.ready() ? "Phone reminders are ready." : "Enable phone reminders in Sound & notifications before starting.") : "Keep Boothy open for timely alerts."}</p><p class="alert-summary">Sound ${window.BoothyDevice?.options().sound ? 'on' : 'off'} · Phone alerts ${window.BoothyDevice?.status() === 'enabled' ? 'on' : 'off'}</p>
       <div class="button-row">${button('setupBack', 'Back', 'outline')}<button type="submit" class="button primary">${demo ? 'Start demo' : 'Start ride'} ${icon('arrow')}</button></div>
       </form></section><button class="text-button" data-tab="reminders">Sound & notification settings ${icon('arrow')}</button>`;
@@ -211,7 +211,7 @@
   }
   function helpView() {
     return `<section class="card card-pad"><h2>One trip. Three steps.</h2><ol class="help-list"><li>Set your destination and arrival estimate.</li><li>Add the things you’re taking.</li><li>Start the ride. When Boothy reminds you, check each item before leaving.</li></ol></section>
-    <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is 3 minutes before your estimate. The tone lasts 15 seconds. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
+    <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is up to 3 minutes before your estimate; shorter trips use a shorter lead. With voice enabled, a brief chime comes first, then your spoken reminder and the remaining tone. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
     <a class="button outline full" href="mailto:alabivictordaniel@gmail.com?subject=Boothy%20feedback">Send Victor feedback ${icon('arrow')}</a>`;
   }
   function alertOptions() {
@@ -493,7 +493,7 @@
     try { localStorage.setItem(KEY,JSON.stringify(state)); } catch {}
     if(meaningful||configChanged)render();else updateClockLabels();
     if(previous.stage!==state.ride.stage&&['arrived','ready'].includes(state.ride.stage))window.BoothyLiveMap?.stop();
-    if(state.ride.stage==='arrived'&&previous.stage!=='arrived')showPopup('end');
+    if(state.ride.stage==='arrived'&&previous.stage!=='arrived'&&!state.ride.end?.done)showPopup('end');
     else if(state.ride.preArrival?.status==='due'&&previous.preArrival?.status!=='due')showPopup('before');
     const list=$('#belongings-popup .popup-checklist');if(list&&!list.hidden&&state.ride.items)list.innerHTML=checklistMarkup();
   });
