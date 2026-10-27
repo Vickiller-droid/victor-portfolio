@@ -33,7 +33,7 @@
       return audio.state === 'running';
     } catch { return false; }
   }
-  async function beep(short = false, tag = 'preview') {
+  async function beep(short = false, tag = 'preview', length = 15) {
     if (short && activeNodes.size) return false;
     stopSound();
     const token = playback; activeTag = tag;
@@ -41,7 +41,7 @@
     try {
     const oscillator = audio.createOscillator(), gain = audio.createGain();
     oscillator.connect(gain); gain.connect(audio.destination);
-    const now = audio.currentTime, duration = short ? .42 : 15;
+    const now = audio.currentTime, duration = short ? .42 : length;
     const tune = tones[options.tone];
     oscillator.type = 'sine';
     gain.gain.setValueAtTime(.0001, now);
@@ -87,7 +87,8 @@
   async function notify(title, body, tag, destination) {
     if(window.BoothyNative?.available&&tag==='boothy-test'){const ok=await window.BoothyNative.test();return {sound:options.sound?(ok?'requested':'failed'):'off',vibration:options.vibration?(ok?'requested':'failed'):'off',notification:ok?'requested':'failed'};}
     // Start each channel independently, retaining the button's user activation.
-    const sound = options.sound ? beep(false, tag) : Promise.resolve(null);
+    const spoken = Boolean(destination?.voiceText && window.BoothyVoice?.enabled());
+    const sound = options.sound ? beep(false, tag, spoken ? 1.2 : 15) : Promise.resolve(null);
     let vibration = 'off';
     if (options.vibration) {
       vibration = 'unavailable';
@@ -99,7 +100,11 @@
     const [played, notification] = await Promise.all([sound, phoneNotification(title, body, tag, destination)]);
     if (destination?.voiceText && window.BoothyVoice?.enabled()) {
       const expected = playback;
-      voiceTimer = setTimeout(() => { if (expected === playback) window.BoothyVoice.speakText(destination.voiceText); }, played ? 15000 : 0);
+      voiceTimer = setTimeout(async () => {
+        if (expected !== playback) return;
+        await window.BoothyVoice.speakText(destination.voiceText);
+        if (expected === playback && options.sound) beep(false, tag, 12);
+      }, played ? 1200 : 0);
     }
     return { sound: played === null ? 'off' : played ? 'started' : 'failed', vibration, notification };
   }

@@ -13,3 +13,5 @@ Set BOOTHY_GOOGLE_MAPS_BROWSER_KEY on Vercel for the config endpoint. The Androi
 ## Device acceptance
 
 Test a five-minute manual trip: automatic warning at minute two, voice follows brief chime, notification while locked, snooze once, checked items preserved, arrival does not alarm when all collected, cancellation suppresses pending alarms. Repeat with headphones. Then test a three-minute journey: no departure alarm, warning at minute one. Inspect diagnostics if an automatic alert fails; do not infer the cause from a successful preview. Google road tests follow credential activation, including GPS loss and traffic changes.
+
+Voice now covers estimated arrival with conditional wording; snooze uses the normal pre-arrival voice path. All-checked arrival finishes quietly. The checklist opens directly in the popup. Browser audio sequencing matches native. Added Android TTS service visibility declaration. Android CI fixed obsolete tools package request. Warning lead is fixed at trip start so traffic updates cannot change the chosen preparation lead. Maps remains deferred by user request.

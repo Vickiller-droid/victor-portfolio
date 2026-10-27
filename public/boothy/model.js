@@ -24,7 +24,7 @@
       event(s, 'In-transit reminder delivered');
     }
     const pre = s.ride.preArrival;
-    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= Math.min(180, s.ride.duration * 40);
+    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= (s.ride.warningLeadSeconds ?? 180);
     if (pre?.status === 'scheduled' && preDue && (fresh || pre.snoozeUntil != null)) {
       s.ride.preArrival.status = 'due';
       s.ride.preArrival.deliveredAt = s.ride.elapsed;
@@ -49,6 +49,7 @@
     r.stage = 'inTransit';
     r.origin = s.config.origin; r.destination = s.config.destination;
     r.duration = Math.max(3, Math.min(999, Number(s.config.duration) || 5));
+    r.warningLeadSeconds = Math.min(180, r.duration * 40);
     r.clockMode = s.config.clockMode === 'real' ? 'real' : 'simulation';
     r.transport = s.config.transport === 'passenger' ? 'passenger' : 'car';
     r.startedAt = Number(data.nowMs) || Date.now(); r.clockAt = r.startedAt;

@@ -36,7 +36,7 @@
       dialog.addEventListener('cancel', () => { send('interactReminder'); window.BoothyDevice?.stopSound(); popupKind = null; });
     }
     popupKind = kind;
-    dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist" hidden></div><div class="button-row">${button('popupCheck', 'Check my things', 'primary full')}${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full', 'hidden')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
+    dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist">${checklistMarkup()}</div><div class="button-row">${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
     if (!dialog.open) dialog.showModal();
   }
   function revealChecklist() {

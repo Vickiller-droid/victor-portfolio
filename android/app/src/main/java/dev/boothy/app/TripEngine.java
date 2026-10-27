@@ -108,6 +108,7 @@ public final class TripEngine {
           double minutes = c.optDouble("duration", 15);
           double duration = Double.isFinite(minutes) ? Math.max(3, Math.min(999, minutes)) : 15;
           put(r, "duration", duration);
+          put(r, "warningLeadMs", Math.min(180000L, (long)(duration * 40000)));
           put(r, "startedAt", now);
           put(r, "clockAt", now);
           put(r, "etaAt", now + (long) (duration * 60000));
@@ -338,9 +339,7 @@ public final class TripEngine {
 
   // Short trips still get preparation time without alarming at departure.
   static long warningAt(JSONObject r) {
-    long start = r.optLong("startedAt"), eta = r.optLong("etaAt");
-    long lead = Math.min(180000L, Math.max(0L, (eta - start) * 2 / 3));
-    return eta - lead;
+    return r.optLong("etaAt") - r.optLong("warningLeadMs", 180000L);
   }
 
   static void tick(JSONObject r, long now, List<String> alerts) {
