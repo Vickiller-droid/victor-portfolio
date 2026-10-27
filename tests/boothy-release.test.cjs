@@ -23,3 +23,21 @@ test('stale route pauses arrival warnings and emits one tracking notice',()=>{le
 test('fresh route recovers after stale tracking',()=>{let s=ride();s=M.transition(s,'updateRouteEta',{rideId:s.ride.id,seconds:300,observedAt:NOW,nowMs:NOW});s=tick(s,91);s=M.transition(s,'updateRouteEta',{rideId:s.ride.id,seconds:120,observedAt:NOW+120000,nowMs:NOW+120000});assert.equal(s.ride.preArrival.status,'due');assert.equal(s.ride.trackingWarningSent,false);});
 test('out-of-order, duplicate and wrong-pin responses cannot replace an estimate',()=>{let s=ride();s=M.transition(s,'setDestinationPoint',{point:{lat:9.1,lng:7.4}});s=M.transition(s,'updateRouteEta',{rideId:s.ride.id,seconds:600,observedAt:NOW+60000,nowMs:NOW+60000});for(const d of [{observedAt:NOW+59000},{observedAt:NOW+60000},{observedAt:NOW+61000,destinationPoint:{lat:1,lng:2}}])assert.equal(M.transition(s,'updateRouteEta',{rideId:s.ride.id,seconds:10,nowMs:NOW+61000,...d}).ride.etaAt,s.ride.etaAt);});
 test('stopping road timing requires a fresh manual time',()=>{let s=ride();s=M.transition(s,'updateRouteEta',{rideId:s.ride.id,seconds:300,observedAt:NOW,nowMs:NOW});s=M.transition(s,'useManualEta');assert.equal(M.routeFresh(s.ride),false);s=M.transition(s,'updateEta',{minutes:7,nowMs:NOW});assert.equal(M.routeFresh(s.ride),true);assert.equal(s.ride.etaSource,'manual');});
+
+test('short manual trip waits one minute before preparation warning', () => {
+  const M = require('../public/boothy/model.js');
+  let s=M.initial(); s.config.duration=3;
+  s=M.transition(s,'depart',{nowMs:2000000000000});
+  assert.equal(s.ride.preArrival.status,'scheduled');
+  s=M.transition(s,'tick',{nowMs:2000000060000});
+  assert.equal(s.ride.preArrival.status,'due');
+});
+test('arrival after collecting all items finishes quietly',()=>{
+ let s=ride();for(const item of s.ride.items)s=M.transition(s,'collect',{id:item.id});
+ s=M.transition(s,'arrive',{nowMs:NOW+60000});
+ assert.equal(s.ride.end.done,true);
+});
+test('estimated arrival voice does not claim actual arrival and excludes checked items',()=>{
+ const words=V.message([{name:'Bag',checked:true},{name:'Keys',checked:false}],false,true);
+ assert.match(words,/estimated arrival/);assert.match(words,/Keys/);assert.doesNotMatch(words,/Bag/);
+});

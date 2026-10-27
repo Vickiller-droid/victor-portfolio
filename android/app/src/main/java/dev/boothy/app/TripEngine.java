@@ -381,7 +381,7 @@ public final class TripEngine {
     }
     if (fresh && now >= r.optLong("etaAt") && !r.optBoolean("etaReached")) {
       put(r, "etaReached", true);
-      if (!alerts.contains("before")) alerts.add("eta");
+      if (!alerts.contains("before") && !allChecked(r)) alerts.add("eta");
     }
   }
 

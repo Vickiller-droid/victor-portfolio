@@ -245,4 +245,15 @@ public class TripEngineTest {
     assertFalse(arrival.alerts().contains("end"));
     assertTrue(r(arrival.state()).getJSONObject("end").getBoolean("done"));
   }
+  @Test public void snoozeRedeliversBeforeArrival() throws Exception {
+    JSONObject s = tick(ride(), 420).state();
+    s = TripEngine.apply(s, "snoozePreArrival", data(), NOW + 425000).state();
+    assertFalse(tick(s, 484).alerts().contains("before"));
+    assertTrue(tick(s, 485).alerts().contains("before"));
+  }
+  @Test public void estimatedArrivalSpeechIsConditional() throws Exception {
+    String words = Alerts.voiceText(r(ride()), "eta");
+    assertTrue(words.contains("estimated arrival"));
+    assertTrue(words.contains("If you're getting out"));
+  }
 }

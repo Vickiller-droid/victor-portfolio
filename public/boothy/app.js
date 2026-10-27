@@ -71,20 +71,20 @@
   }
   function signal(title, body, kind) {
     if (window.BoothyNative?.ownsAlerts(state.ride)) return;
-    window.BoothyDevice?.signal(title, body, tag(kind), { kind, rideId: state.ride.id, voiceText: ['before', 'end'].includes(kind) ? window.BoothyVoice?.message(state.ride.items, kind === 'end') : '' }).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
+    window.BoothyDevice?.signal(title, body, tag(kind), { kind, rideId: state.ride.id, voiceText: ['before', 'end', 'eta'].includes(kind) ? window.BoothyVoice?.message(state.ride.items, kind === 'end', kind === 'eta') : '' }).then(ok => { if (!ok) toast('An alert channel could not run. Your reminder is visible here. Open Reminders and use Test alert for details.'); });
   }
   function signalChanges(previous) {
     const r = state.ride;
     if (r.preArrival?.status === 'due' && (previous.preArrival?.status !== 'due' || (r.preArrival.repeatCount || 0) > (previous.preArrival?.repeatCount || 0))) signal('Get your belongings ready', `${r.end.message}. ${r.end.reason} Items: ${r.items.map(i => i.name).join(', ')}.`, 'before');
     if (r.trackingWarningSent && !previous.trackingWarningSent) signal('Check your arrival time', 'Live timing has paused. Reconnect location or enter a new time.', 'tracking');
     if (r.transit?.status === 'due' && previous.transit?.status !== 'due') signal(r.transit.message, r.transit.reason, 'transit');
-    if (r.etaReached && !previous.etaReached && !(r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due')) signal('Have you arrived?', 'Your estimated arrival time has passed. Confirm arrival or update your estimate.', 'eta');
-    if (r.stage === 'arrived' && previous.stage !== 'arrived') signal('Before you leave the vehicle', `${r.end.message}. ${r.end.reason} Collect: ${r.items.map(i => i.name).join(', ')}.`, 'end');
+    if (r.etaReached && !previous.etaReached && !r.items.every(i => i.checked) && !(r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due')) signal('Have you arrived?', 'Your estimated arrival time has passed. Confirm arrival or update your estimate.', 'eta');
+    if (r.stage === 'arrived' && previous.stage !== 'arrived' && !r.end.done) signal('Before you leave the vehicle', `${r.end.message}. ${r.end.reason} Collect: ${r.items.map(i => i.name).join(', ')}.`, 'end');
     if (previous.preArrival?.status === 'due' && r.preArrival?.status !== 'due') window.BoothyDevice?.close(tag('before', previous));
     if (previous.transit?.status === 'due' && r.transit?.status !== 'due') window.BoothyDevice?.close(tag('transit', previous));
     if (r.end?.done && !previous.end?.done) window.BoothyDevice?.close(tag('end'));
     if (previous.etaReached && (!r.etaReached || r.stage === 'arrived')) window.BoothyDevice?.close(tag('eta', previous));
-    if (r.stage === 'arrived' && previous.stage !== 'arrived') showPopup('end');
+    if (r.stage === 'arrived' && previous.stage !== 'arrived' && !r.end.done) showPopup('end');
     else if (r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due') showPopup('before');
   }
   function updateClockLabels() {

@@ -24,7 +24,7 @@
       event(s, 'In-transit reminder delivered');
     }
     const pre = s.ride.preArrival;
-    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= 180;
+    const preDue = pre?.snoozeUntil != null ? (s.ride.clockMode === 'real' ? s.ride.clockAt : s.ride.elapsed) >= pre.snoozeUntil : remainingSeconds(s.ride) <= Math.min(180, s.ride.duration * 40);
     if (pre?.status === 'scheduled' && preDue && (fresh || pre.snoozeUntil != null)) {
       s.ride.preArrival.status = 'due';
       s.ride.preArrival.deliveredAt = s.ride.elapsed;
@@ -67,6 +67,7 @@
   function finishArrival(s, data = {}) {
     const r = s.ride;
     r.stage = 'arrived';
+    if (r.items.length && r.items.every(item => item.checked)) r.end.done = true;
     if (r.transit.status === 'scheduled') { r.transit.status = 'missed'; event(s, 'Ride ended before the in-transit reminder was due'); }
     if (r.preArrival.status === 'scheduled') r.preArrival.status = 'missed';
     if (r.preArrival.status === 'due') r.preArrival.status = 'closed';

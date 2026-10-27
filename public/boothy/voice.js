@@ -4,11 +4,12 @@
   let enabled = false, generation = 0, settle;
   try { enabled = root.localStorage?.getItem(key) === 'on'; } catch {}
   if(typeof root.BoothyBoot?.voice==='boolean')enabled=root.BoothyBoot.voice;
-  function message(items, arrived) {
+  function message(items, arrived, estimated = false) {
     const names = (items || []).filter(item => !item.checked).map(item => String(typeof item === 'string' ? item : item.name || '').trim().slice(0, 50)).filter(Boolean);
     const selected = names.slice(0, 4);
     let list = selected.length < 2 ? selected.join('') : selected.slice(0, -1).join(', ') + ' and ' + selected.at(-1);
     if (names.length > 4) list += ', and your other things';
+    if (estimated) return 'Your estimated arrival time is up. ' + (list ? 'If you’re getting out, remember your ' + list + '.' : 'Confirm whether you have arrived.');
     return (arrived ? 'Before you leave. ' : 'You’re almost there. ') + (list ? 'Remember your ' + list + '. ' : 'Check the seat around you. ') + 'Make sure to leave nothing behind.';
   }
   function supported() { return Boolean(root.BoothyNative?.available || (root.speechSynthesis && root.SpeechSynthesisUtterance)); }

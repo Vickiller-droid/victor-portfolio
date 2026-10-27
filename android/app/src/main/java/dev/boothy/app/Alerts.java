@@ -125,7 +125,7 @@ public final class Alerts {
         };
     notice(c, title, body, kind, r.optString("id"));
     JSONObject payload = TripStore.read(c), prefs = TripEngine.obj(payload, "options");
-    boolean voice = payload.optBoolean("voice") && List.of("before", "end").contains(kind);
+    boolean voice = payload.optBoolean("voice") && List.of("before", "end", "eta").contains(kind);
     if (prefs.optBoolean("sound") || prefs.optBoolean("vibration") || voice) {
       try {
         c.startForegroundService(
@@ -144,6 +144,8 @@ public final class Alerts {
     int total = names.size();
     if (total > 4) names = names.subList(0, 4);
     String list = String.join(", ", names) + (total > 4 ? ", and your other things" : "");
+    if ("eta".equals(kind)) return "Your estimated arrival time is up. "
+        + (list.isEmpty() ? "Confirm whether you have arrived." : "If you're getting out, remember your " + list + ".");
     return ("end".equals(kind) ? "Before you leave. " : "You're almost there. ")
         + (list.isEmpty() ? "Check the seat around you. " : "Remember your " + list + ". ")
         + "Make sure to leave nothing behind.";
