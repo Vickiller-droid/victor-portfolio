@@ -27,10 +27,11 @@ jobs:
           gradle-version: '8.13'
       - run: gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
         working-directory: android
+      - run: python3 scripts/verify-boothy-apk.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Boothy-Pilot-0.2.1-and-test-reports
+          name: Boothy-Pilot-0.2.2-and-test-reports
           path: |
             android/app/build/outputs/apk/debug/*.apk
             android/app/build/reports/tests/

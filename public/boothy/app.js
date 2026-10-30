@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+  const footerVersion = document.querySelector('.app-footer span:last-child');
+  if (footerVersion && window.BoothyBoot?.buildVersion) footerVersion.textContent = 'Boothy · ' + window.BoothyBoot.buildVersion;
   const KEY = 'boothy-ride-lab-v1';
   const M = window.BoothyModel;
   let storageOK = true, state;
@@ -253,7 +255,7 @@
     let result = '';
     if (r.stage === 'inTransit' && r.preArrival?.status === 'due') {
       const remaining = Math.ceil(M.remainingSeconds(r) / 60);
-      result += `<section class="reminder-alert pre-arrival-alert" role="alert"><h2 class="reminder-message">Almost there. Get your things ready.</h2>${button('openChecklist', 'Check my things', 'primary full', '', 'bag')}</section>`;
+      result += `<section class="reminder-alert pre-arrival-alert" role="alert"><h2 class="reminder-message">${r.etaReached ? 'Check your things before you leave.' : 'Almost there. Get your things ready.'}</h2>${button('openChecklist', 'Check my things', 'primary full', '', 'bag')}</section>`;
     }
     if (r.stage === 'inTransit' && r.clockMode === 'real' && r.etaReached) result += `<section class="reminder-alert" role="alert"><span class="section-label">ARRIVAL CHECK</span><h2 class="reminder-message">Have you arrived?</h2><p class="help">Your estimated arrival time has passed.</p>${button('arrive', 'Yes · check my belongings', 'dark full', '', 'bag')}</section>`;
     if (r.transit?.status === 'due') result += `<section class="reminder-alert"><div class="card-top"><span class="section-label">${r.stage === 'arrived' ? 'UNHANDLED IN-TRANSIT REMINDER' : 'IN-TRANSIT REMINDER'}</span><span class="pill orange">Now due · ${r.transit.at} min</span></div><h2 class="reminder-message">${escape(r.transit.message)}</h2>${reason(r.transit.reason)}<div class="button-row">${button('ackTransit', 'Done', 'primary', '', 'check')}${r.stage === 'inTransit' ? button('snooze', 'Snooze 1 min', 'outline', '', 'clock') : ''}</div></section>`;

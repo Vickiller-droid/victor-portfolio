@@ -91,6 +91,7 @@ public class MainActivity extends ComponentActivity {
   JSONObject boot() {
     JSONObject p = TripStore.read(this);
     TripEngine.put(p, "caps", capabilities());
+    TripEngine.put(p, "buildVersion", BuildConfig.VERSION_NAME);
     return p;
   }
 
@@ -103,6 +104,8 @@ public class MainActivity extends ComponentActivity {
     FrameLayout root = new FrameLayout(this);
     root.setBackgroundColor(Color.rgb(23, 38, 31));
     web = new WebView(this);
+    // Clear rendered resources only; retain trip preferences and DOM storage.
+    web.clearCache(true);
     root.addView(web, new FrameLayout.LayoutParams(-1, -1));
     setContentView(root);
     root.setOnApplyWindowInsetsListener(
@@ -120,6 +123,7 @@ public class MainActivity extends ComponentActivity {
           return insets;
         });
     WebSettings settings = web.getSettings();
+    settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
     settings.setAllowFileAccess(false);
@@ -173,7 +177,9 @@ public class MainActivity extends ComponentActivity {
                   "UTF-8",
                   new ByteArrayInputStream(
                       ("window.BoothyBoot=" + boot() + ";").getBytes(StandardCharsets.UTF_8)));
-            return assets.shouldInterceptRequest(uri);
+            WebResourceResponse resource = assets.shouldInterceptRequest(uri);
+            if (resource != null) resource.setResponseHeaders(java.util.Map.of("Cache-Control", "no-store"));
+            return resource;
           }
 
           @Override
