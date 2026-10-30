@@ -48,7 +48,8 @@
     const list = $('#belongings-popup .popup-checklist');
     if (!list) return;
     list.hidden = false; list.innerHTML = checklistMarkup();
-    $('#belongings-popup [data-action=popupCheck]').hidden = true;
+    const openButton = $('#belongings-popup [data-action=popupCheck]');
+    if (openButton) openButton.hidden = true;
     $('#belongings-popup [data-action=popupDone]').hidden = false;
     list.querySelector('button')?.focus();
   }
