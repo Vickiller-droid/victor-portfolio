@@ -36,6 +36,7 @@ public class AndroidDeliveryTest {
 
   @Test
   public void reminderRequestsDuckingInsteadOfPausingOtherMedia() throws Exception {
+    shadowOf(app).grantPermissions("dev.boothy.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION");
     var controller = Robolectric.buildService(AlertService.class).create();
     var field = AlertService.class.getDeclaredField("focus");
     field.setAccessible(true);
