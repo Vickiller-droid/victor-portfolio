@@ -49,7 +49,7 @@
     r.stage = 'inTransit';
     r.origin = s.config.origin; r.destination = s.config.destination;
     r.duration = Math.max(3, Math.min(999, Number(s.config.duration) || 5));
-    r.warningLeadSeconds = Math.min(180, r.duration * 40);
+    r.warningLeadSeconds = 180;
     r.clockMode = s.config.clockMode === 'real' ? 'real' : 'simulation';
     r.transport = s.config.transport === 'passenger' ? 'passenger' : 'car';
     r.startedAt = Number(data.nowMs) || Date.now(); r.clockAt = r.startedAt;
@@ -191,6 +191,12 @@
         if (!['inTransit', 'arrived'].includes(r.stage)) break;
         r.items = r.items.map(item => item.id === Number(data.id) ? { ...item, checked: !item.checked } : item);
         if (r.preArrival) r.preArrival.interacted = true;
+        if (r.items.length && r.items.every(i => i.checked)) {
+          r.preArrival.status = 'done'; delete r.preArrival.snoozeUntil;
+          if (!r.completionAnnounced) { r.completionAnnounced = true; event(s, 'All items collected'); }
+        } else if (r.preArrival.status === 'done' && r.stage === 'inTransit') {
+          r.preArrival = {status:'scheduled',revision:(r.preArrival.revision||0)+1};
+        }
         break;
       case 'ackEnd':
         if (r.stage !== 'arrived' || r.end.done) break;

@@ -102,6 +102,19 @@ public final class Alerts {
 
   static void deliver(Context c, JSONObject state, List<String> kinds) {
     JSONObject r = state == null ? new JSONObject() : TripEngine.obj(state, "ride");
+    if (kinds.contains("complete")) {
+      c.getSystemService(NotificationManager.class).cancel(10);
+      JSONObject payload = TripStore.read(c);
+      if (payload.optBoolean("voice")) {
+        try { c.startForegroundService(new Intent(c, AlertService.class)
+            .putExtra("kind", "complete").putExtra("rideId", r.optString("id"))
+            .putExtra("voice", "You have all your things. Safe travels.")
+            .putExtra("voicePreview", true)); }
+        catch (Exception e) { TripStore.note(c, "Completion voice unavailable"); }
+      }
+      if (kinds.size() == 1) return;
+      kinds = new ArrayList<>(kinds); kinds.remove("complete");
+    }
     String kind =
         kinds.contains("before") ? "before" : kinds.contains("end") ? "end" : kinds.get(0);
     String itemText = String.join(", ", items(r));
@@ -125,7 +138,7 @@ public final class Alerts {
         };
     notice(c, title, body, kind, r.optString("id"));
     JSONObject payload = TripStore.read(c), prefs = TripEngine.obj(payload, "options");
-    boolean voice = payload.optBoolean("voice") && List.of("before", "end", "eta").contains(kind);
+    boolean voice = payload.optBoolean("voice") && List.of("before", "end", "eta", "test").contains(kind);
     if (prefs.optBoolean("sound") || prefs.optBoolean("vibration") || voice) {
       try {
         c.startForegroundService(

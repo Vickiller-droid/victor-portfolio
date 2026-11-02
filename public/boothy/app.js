@@ -19,6 +19,32 @@
   const isReal = () => (state.ride.clockMode || state.config.clockMode) === 'real';
   const tag = (kind, r = state.ride) => `boothy-${r.id || 'ride'}-${kind}${kind === 'before' ? '-' + (r.preArrival?.revision || 0) : ''}`;
   let popupKind = null;
+  const REVIEW_KEY = 'boothy-alert-setup-v1';
+  let alertsReviewed = false;
+  try { alertsReviewed = localStorage.getItem(REVIEW_KEY) === 'reviewed'; } catch {}
+  function reviewAlerts() {
+    let d = $('#alert-setup');
+    if (!d) { d = document.createElement('dialog'); d.id = 'alert-setup'; d.className = 'belongings-popup'; document.body.append(d); }
+    d.innerHTML = `<h2>Hear your reminder</h2><p>Turn on sound and voice, then test your phone before your first trip.</p>
+      ${button('enableAndTest', 'Enable sound & test', 'primary full')}
+      <p id="setup-test-status" role="status" aria-live="polite"></p>
+      ${button('confirmHeard', 'I heard it', 'outline full', 'disabled')}
+      ${button('quietTrip', 'Use visual reminders only', 'text-button full')}
+      ${button('reviewSettings', 'Sound & phone permissions', 'text-button full')}`;
+    d.showModal();
+  }
+  function markReviewed() { alertsReviewed = true; try {localStorage.setItem(REVIEW_KEY, 'reviewed');} catch {} $('#alert-setup')?.close(); render(); }
+  function snoozeSeconds() { const r=state.ride; return r.preArrival?.snoozeUntil ? Math.max(0, Math.ceil(isReal() ? (r.preArrival.snoozeUntil-Date.now())/1000 : (r.preArrival.snoozeUntil-r.elapsed)*60)) : 0; }
+  function snoozeNotice() { return snoozeSeconds()>0 ? `<section class="card card-pad" role="status"><strong>Reminder snoozed · <span id="snooze-countdown">${clock(snoozeSeconds())}</span></strong><p class="small-copy">Arrival estimate unchanged. The reminder will ring again.</p></section>` : ''; }
+  function updateChecklistFeedback() {
+    const all = state.ride.items?.length && state.ride.items.every(i=>i.checked);
+    const label = $('#belongings-popup [data-action=popupDone]');
+    if (label) label.textContent=all?'All items collected':state.ride.stage==='arrived'?'Close checklist':'Keep travelling';
+    const snooze = $('#belongings-popup [data-action=popupSnooze]'); if(snooze)snooze.hidden=Boolean(all);
+    const summary = $('#belongings-popup .popup-items');
+    if(summary)summary.textContent=all?'You have all your things.':state.ride.items.filter(i=>!i.checked).map(i=>i.name).join(' · ');
+  }
+
   function closePopup() {
     window.BoothyVoice?.stop();
     window.BoothyDevice?.stopSound();
@@ -38,7 +64,8 @@
       dialog.addEventListener('cancel', () => { send('interactReminder'); window.BoothyDevice?.stopSound(); popupKind = null; });
     }
     popupKind = kind;
-    dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist">${checklistMarkup()}</div><div class="button-row">${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Done checking', 'primary full')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
+    dialog.innerHTML = `<p class="eyebrow">BOOTHY REMINDER</p><h2 id="belongings-title">${kind === 'before' ? 'Almost there. Check your things.' : 'Before you leave. Check your things.'}</h2><p class="popup-items">${state.ride.items.map(i => escape(i.name)).join(' · ')}</p><div class="checklist popup-checklist">${checklistMarkup()}</div><div class="button-row">${kind === 'before' ? button('popupSnooze', 'Remind me in 1 minute', 'outline full') : ''}${button('popupDone', 'Keep travelling', 'primary full')}${button('popupClose', 'Stop sound & close', 'outline full')}</div>`;
+    updateChecklistFeedback();
     if (!dialog.open) dialog.showModal();
   }
   function revealChecklist() {
@@ -81,7 +108,7 @@
     if (r.preArrival?.status === 'due' && (previous.preArrival?.status !== 'due' || (r.preArrival.repeatCount || 0) > (previous.preArrival?.repeatCount || 0))) signal('Get your belongings ready', `${r.end.message}. ${r.end.reason} Items: ${r.items.map(i => i.name).join(', ')}.`, 'before');
     if (r.trackingWarningSent && !previous.trackingWarningSent) signal('Check your arrival time', 'Live timing has paused. Reconnect location or enter a new time.', 'tracking');
     if (r.transit?.status === 'due' && previous.transit?.status !== 'due') signal(r.transit.message, r.transit.reason, 'transit');
-    if (r.etaReached && !previous.etaReached && !r.items.every(i => i.checked) && !(r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due')) signal('Have you arrived?', 'Your estimated arrival time has passed. Confirm arrival or update your estimate.', 'eta');
+    if (r.etaReached && !previous.etaReached && !r.preArrival?.snoozeUntil && !r.items.every(i => i.checked) && !(r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due')) signal('Have you arrived?', 'Your estimated arrival time has passed. Confirm arrival or update your estimate.', 'eta');
     if (r.stage === 'arrived' && previous.stage !== 'arrived' && !r.end.done) signal('Before you leave the vehicle', `${r.end.message}. ${r.end.reason} Collect: ${r.items.map(i => i.name).join(', ')}.`, 'end');
     if (previous.preArrival?.status === 'due' && r.preArrival?.status !== 'due') window.BoothyDevice?.close(tag('before', previous));
     if (previous.transit?.status === 'due' && r.transit?.status !== 'due') window.BoothyDevice?.close(tag('transit', previous));
@@ -91,9 +118,10 @@
     else if (r.preArrival?.status === 'due' && previous.preArrival?.status !== 'due') showPopup('before');
   }
   function updateClockLabels() {
+    const snoozeLabel = $('#snooze-countdown'); if(snoozeLabel)snoozeLabel.textContent=clock(snoozeSeconds());
     const seconds = M.remainingSeconds(state.ride);
     const countdown = $('#ride-countdown'); if (countdown) countdown.textContent = clock(seconds);
-    const eta = $('#ride-eta'); if (eta) eta.textContent = !M.routeFresh(state.ride) ? 'Live timing paused' : seconds > 0 ? `About ${Math.ceil(seconds / 60)} min left` : 'Estimate reached';
+    const eta = $('#ride-eta'); if (eta) eta.textContent = !M.routeFresh(state.ride) ? 'Live timing paused' : seconds > 0 ? `About ${Math.ceil(seconds / 60)} min to arrival` : 'Estimate reached';
     const alert = $('#arrival-countdown'); if (alert) alert.textContent = seconds > 0 ? `${clock(seconds)} to estimated arrival. Get your belongings ready.` : 'Your arrival estimate has passed. Keep your belongings ready.';
   }
   function toast(message) {
@@ -126,6 +154,8 @@
       updateClockLabels();
     } else render();
     signalChanges(previous);
+    updateChecklistFeedback();
+    if (state.ride.completionAnnounced && !previous.completionAnnounced) { window.BoothyDevice?.stopSound(); window.BoothyVoice?.speakText('You have all your things. Safe travels.'); toast('All items collected.'); }
     if (previousStage !== 'arrived' && state.ride.stage === 'arrived') {
       tab = 'ride'; location.hash = 'ride'; render(); window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (state.ride.preArrival?.status === 'due' && previousAlert !== 'due') {
@@ -155,7 +185,7 @@
     if (state.ride.stage === 'detecting') return `<section class="card card-pad"><h2>Starting your demo…</h2>${button('cancelDetection', 'Cancel', 'outline full')}</section>`;
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
-      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll remind you before arrival: 3 minutes ahead on longer trips, 2 minutes ahead on a 3-minute trip.</span></label>
+      <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll warn you 3 minutes before arrival. On a 3-minute trip, the warning starts as you leave.</span></label>
       ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Choose on map', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'Optional. You can start with just your time estimate.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
@@ -166,9 +196,9 @@
       ${window.BoothyNative?.available ? '' : demo ? button('exitDemo', 'Use for a real trip', 'text-button') : `<div class="demo-entry">${button('tryDemo', 'Try a demo first', 'text-button')}</div>`}`;
     return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupItems">
       <label class="field">What are you taking?<input name="items" value="${escape(c.items.join(', '))}" required maxlength="400" placeholder="Phone, bag, keys"><span class="field-note">Separate items with commas.</span></label>
-      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder ${Math.min(3, Number(c.duration) * 2 / 3).toFixed(0)} minutes before arrival</span></div>
-      <p class="small-copy">${window.BoothyNative?.available ? (window.BoothyNative.ready() ? "Phone reminders are ready." : "Enable phone reminders in Sound & notifications before starting.") : "Keep Boothy open for timely alerts."}</p><p class="alert-summary">Sound ${window.BoothyDevice?.options().sound ? 'on' : 'off'} · Phone alerts ${window.BoothyDevice?.status() === 'enabled' ? 'on' : 'off'}</p>
-      <div class="button-row">${button('setupBack', 'Back', 'outline')}<button type="submit" class="button primary">${demo ? 'Start demo' : 'Start ride'} ${icon('arrow')}</button></div>
+      <div class="trip-summary"><span>Going to</span><strong>${escape(c.destination)}</strong><span>About ${c.duration} minutes · reminder 3 minutes before arrival${Number(c.duration)<=3 ? " · warning starts at departure" : ""}</span></div>
+      <p class="small-copy">${window.BoothyNative?.available ? (window.BoothyNative.ready() ? "Android scheduling enabled." : "Enable phone reminders in Sound & notifications before starting.") : "Keep Boothy open for timely alerts."}</p><p class="alert-summary">Sound ${window.BoothyDevice?.options().sound ? 'on' : 'off'} · Voice ${window.BoothyVoice?.enabled() ? 'on' : 'off'} · Phone alerts ${window.BoothyDevice?.status() === 'enabled' ? 'on' : 'off'}</p>
+      ${!alertsReviewed ? button("reviewAlerts", "Set up sound & voice", "outline full") : ""}<div class="button-row">${button('setupBack', 'Back', 'outline')}<button type="submit" class="button primary">${demo ? 'Start demo' : 'Start ride'} ${icon('arrow')}</button></div>
       </form></section><button class="text-button" data-tab="reminders">Sound & notification settings ${icon('arrow')}</button>`;
   }
 
@@ -177,7 +207,7 @@
     const checked = r.items.filter(i => i.checked).length;
     return `<section class="card card-pad active-trip"><div class="card-top"><span class="section-label">${real ? 'ON YOUR WAY' : 'DEMO TRIP'}</span><span class="pill">${checked}/${r.items.length} items ready</span></div>
       <span class="trip-emblem">${icon("bag")}</span><h2 class="destination-title">${escape(r.destination)}</h2>
-      <p class="arrival-estimate">${real ? `<strong id="ride-eta">${!M.routeFresh(r) ? 'Live timing paused' : remaining > 0 ? 'About ' + remaining + ' min left' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
+      <p class="arrival-estimate">${real ? `<strong id="ride-eta">${!M.routeFresh(r) ? 'Live timing paused' : remaining > 0 ? 'About ' + remaining + ' min to arrival' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
       <p class="small-copy">${real ? (r.needsResume ? 'Your trip time needs checking. Enter a new time below to resume reminders.' : r.etaSource === 'route' ? (M.routeFresh(r) ? 'Updated from your road route.' : 'Reconnect location or enter a new time below. Arrival warnings are paused.') : 'Your time estimate.') : 'Use the controls below to preview the reminders.'}</p>
       <div class="timing-strip"><span>3-min warning</span><span>1-min snooze</span></div>
       ${button('arrive', real ? 'I’ve arrived' : 'Preview arrival', 'primary full', '', 'pin')}
@@ -214,7 +244,7 @@
   }
   function helpView() {
     return `<section class="card card-pad"><h2>One trip. Three steps.</h2><ol class="help-list"><li>Set your destination and arrival estimate.</li><li>Add the things you’re taking.</li><li>Start the ride. When Boothy reminds you, check each item before leaving.</li></ol></section>
-    <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is up to 3 minutes before your estimate; shorter trips use a shorter lead. With voice enabled, a brief chime comes first, then your spoken reminder and the remaining tone. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
+    <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is 3 minutes before your estimate. A 3-minute trip warns at departure. With voice enabled, a brief chime comes first, then your spoken reminder and the remaining tone. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
     <a class="button outline full" href="mailto:alabivictordaniel@gmail.com?subject=Boothy%20feedback">Send Victor feedback ${icon('arrow')}</a>`;
   }
   function alertOptions() {
@@ -253,7 +283,7 @@
   }
   function notices() {
     const r = state.ride;
-    let result = '';
+    let result = snoozeNotice();
     if (r.stage === 'inTransit' && r.preArrival?.status === 'due') {
       const remaining = Math.ceil(M.remainingSeconds(r) / 60);
       result += `<section class="reminder-alert pre-arrival-alert" role="alert"><h2 class="reminder-message">${r.etaReached ? 'Check your things before you leave.' : 'Almost there. Get your things ready.'}</h2>${button('openChecklist', 'Check my things', 'primary full', '', 'bag')}</section>`;
@@ -295,6 +325,21 @@
     const control = e.target.closest('[data-action]');
     if (!control) return;
     const a = control.dataset.action;
+    if(a==='reviewAlerts'){reviewAlerts();return;}
+    if(a==='reviewSettings'){$('#alert-setup')?.close();changeTab('reminders');return;}
+    if(a==='enableAndTest'){
+      control.disabled=true;
+      window.BoothyDevice.setOption('sound',true); window.BoothyDevice.setOption('vibration',true); window.BoothyVoice.setEnabled(true);
+      try { await window.BoothyNative?.sync(state,window.BoothyDevice.options(),true); await window.BoothyDevice.test(); $('#setup-test-status').textContent='Did you hear it? Confirm below. If silent, check media volume and phone permissions.'; $('#alert-setup [data-action=confirmHeard]').disabled=false; }
+      catch {$('#setup-test-status').textContent='The test could not start. Check Sound & phone permissions.';}
+      finally{control.disabled=false;} return;
+    }
+    if(a==='confirmHeard'){markReviewed();return;}
+    if(a==='quietTrip'){
+      window.BoothyDevice.setOption('sound',false); window.BoothyDevice.setOption('vibration',false);window.BoothyVoice.setEnabled(false);
+      await window.BoothyNative?.sync(state,window.BoothyDevice.options(),false);markReviewed();return;
+    }
+
     if (a === 'openMenu') { window.BoothyTheme?.sync(); $('#app-menu').showModal(); return; }
     if (a === 'closeMenu') { $('#app-menu').close(); return; }
     if (a === 'nativeDiagnostics') { const entries=await window.BoothyNative?.diagnostics(); const out=$('.native-diagnostics'); if(out) out.textContent=Array.isArray(entries) ? entries.slice(0,12).map(e=>new Date(e.time).toLocaleTimeString()+' · '+e.event).join(' / ') : 'Could not load diagnostics.';return; }
@@ -339,7 +384,7 @@
     if (a === 'popupCheck') {
       revealChecklist(); return;
     }
-    if (a === 'popupSnooze') { closePopup(); send('snoozePreArrival'); toast(isReal() ? 'I’ll remind you in 1 minute.' : 'Snoozed. Advance 1 minute to test it.'); return; }
+    if (a === 'popupSnooze') { closePopup(); send('snoozePreArrival'); toast(isReal() ? 'Reminder snoozed for 1 minute. Arrival estimate unchanged.' : 'Snoozed. Advance 1 minute to test it.'); return; }
     if (a === 'toggleTheme') { window.BoothyTheme?.toggle(); return; }
     if (a === 'chooseClock' && state.ride.stage === 'ready') {
       send('configure', { config: { ...state.config, clockMode: control.dataset.value === 'real' ? 'real' : 'simulation' } }); return;
@@ -419,7 +464,7 @@
     send(a, { id: control.dataset.id });
     if (a === 'collect') {
       const item = state.ride.items?.find(i => i.id === Number(control.dataset.id));
-      if (item?.checked && !wasChecked) window.BoothyDevice?.confirmItem();
+      if (item?.checked && !wasChecked && !state.ride.items.every(i=>i.checked)) window.BoothyDevice?.confirmItem();
       const list = $('#belongings-popup .popup-checklist');
       if (list && !list.hidden) { list.innerHTML = checklistMarkup(); list.querySelector(`[data-id="${control.dataset.id}"]`)?.focus(); }
     }
@@ -448,6 +493,7 @@
     } else if (form.dataset.form === 'setupItems') {
       const items = [...new Set(text('items').split(',').map(i => i.trim()).filter(Boolean))].slice(0, 12);
       if (!items.length) { f('items').setCustomValidity('Add at least one item.'); f('items').reportValidity(); return; }
+      if (!alertsReviewed && setupConfig().clockMode === 'real') { reviewAlerts(); return; }
       if (window.BoothyNative?.available && setupConfig().clockMode === 'real' && !window.BoothyNative.ready()) { toast('Set up phone reminders from the menu first.'); changeTab('reminders'); return; }
       window.BoothyDevice?.unlockAudio();
       send('configure', { config: { ...setupConfig(), items } });
@@ -492,13 +538,16 @@
     const meaningful=JSON.stringify({...previous,clockAt:0,elapsed:0})!==JSON.stringify({...restored.ride,clockAt:0,elapsed:0});
     const configChanged=JSON.stringify(state.config)!==JSON.stringify(restored.config)||JSON.stringify(state.parking)!==JSON.stringify(restored.parking);
     state=restored;
-    if(previous.id===state.ride.id && state.ride.items?.some(i=>i.checked&&previous.items?.some(old=>old.id===i.id&&!old.checked)))window.BoothyDevice?.confirmItem();
+    if(previous.id===state.ride.id && !state.ride.items?.every(i=>i.checked) && state.ride.items?.some(i=>i.checked&&previous.items?.some(old=>old.id===i.id&&!old.checked)))window.BoothyDevice?.confirmItem();
     try { localStorage.setItem(KEY,JSON.stringify(state)); } catch {}
     if(meaningful||configChanged)render();else updateClockLabels();
     if(previous.stage!==state.ride.stage&&['arrived','ready'].includes(state.ride.stage))window.BoothyLiveMap?.stop();
     if(state.ride.stage==='arrived'&&previous.stage!=='arrived'&&!state.ride.end?.done)showPopup('end');
     else if(state.ride.preArrival?.status==='due'&&previous.preArrival?.status!=='due')showPopup('before');
     const list=$('#belongings-popup .popup-checklist');if(list&&!list.hidden&&state.ride.items)list.innerHTML=checklistMarkup();
+    updateChecklistFeedback();
+    if(state.ride.completionAnnounced&&!previous.completionAnnounced)toast('All items collected.');
+    if(state.ride.preArrival?.snoozeUntil!==previous.preArrival?.snoozeUntil&&state.ride.preArrival?.snoozeUntil)toast('Reminder snoozed for 1 minute. Arrival estimate unchanged.');
   });
   document.addEventListener('boothynativecapabilities',()=>{if(tab==='reminders')render();});
   document.addEventListener('visibilitychange', () => { if (!document.hidden) syncClock(); });

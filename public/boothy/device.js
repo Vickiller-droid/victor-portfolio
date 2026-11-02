@@ -119,7 +119,7 @@
     options: () => ({ ...options }), status, unlockAudio, stopSound,
     tones: () => Object.entries(tones).map(([id, tone]) => ({ id, name: tone.name })),
     confirmItem: () => options.sound ? beep(true) : Promise.resolve(false),
-    capabilities: () => ({ sound: Boolean(window.AudioContext || window.webkitAudioContext), vibration: Boolean(window.BoothyNative?.available || navigator.vibrate), gps: Boolean(navigator.geolocation) }),
+    capabilities: () => ({ sound: Boolean(window.BoothyNative?.available || window.AudioContext || window.webkitAudioContext), vibration: Boolean(window.BoothyNative?.available || navigator.vibrate), gps: Boolean(navigator.geolocation) }),
     setOption(name, value) {
       if (name === 'tone' && tones[value]) { stopSound(); options.tone = value; save(); }
       if (['sound', 'vibration'].includes(name)) { options[name] = Boolean(value); if (name === 'sound') { if (value) unlockAudio(); else stopSound(); } save(); }

@@ -87,6 +87,12 @@ public final class TripStore {
             "snoozePreArrival",
             "interactReminder")
         .contains(action)) c.getSystemService(android.app.NotificationManager.class).cancel(10);
+    if ("snoozePreArrival".equals(action)) {
+      JSONObject pre = TripEngine.obj(TripEngine.obj(result.state(), "ride"), "preArrival");
+      if (pre.has("snoozeUntil") && pre.optLong("snoozeUntil") != TripEngine.obj(TripEngine.obj(current,"ride"),"preArrival").optLong("snoozeUntil")) Alerts.notice(c, "Reminder snoozed for 1 minute",
+          "Arrival estimate unchanged. Boothy will remind you again.", "ride",
+          TripEngine.obj(result.state(), "ride").optString("id"));
+    }
     Alarms.schedule(c, result.state());
     if (!result.alerts().isEmpty()) note(c, "Trip alert due: " + String.join(",", result.alerts()));
     if (!result.alerts().isEmpty()) Alerts.deliver(c, result.state(), result.alerts());

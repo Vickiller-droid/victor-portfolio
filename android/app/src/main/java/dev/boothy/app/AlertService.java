@@ -83,7 +83,7 @@ public class AlertService extends Service {
     wake.acquire(40000);
     handler.postDelayed(this::stopSelf, 35000);
     JSONObject prefs = TripEngine.obj(TripStore.read(this), "options");
-    if (prefs.optBoolean("vibration")) {
+    if (prefs.optBoolean("vibration") && !"complete".equals(kind)) {
       Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
       if (v != null && v.hasVibrator()) {
         v.vibrate(VibrationEffect.createWaveform(new long[] {0, 350, 150, 350, 500, 350}, -1));

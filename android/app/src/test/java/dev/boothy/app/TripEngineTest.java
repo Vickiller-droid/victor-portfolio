@@ -229,13 +229,12 @@ public class TripEngineTest {
     s = route(s, 0, 600).state();
     assertTrue(tick(s, 120).alerts().contains("transit"));
   }
-  @Test public void shortTripWarnsAfterOneMinute() throws Exception {
+  @Test public void threeMinuteTripWarnsAtDeparture() throws Exception {
     JSONObject s = initial();
     s.getJSONObject("config").put("duration", 3);
     TripEngine.Result start = TripEngine.apply(s, "depart", data(), NOW);
-    assertFalse(start.alerts().contains("before"));
-    assertFalse(tick(start.state(), 59).alerts().contains("before"));
-    assertTrue(tick(start.state(), 60).alerts().contains("before"));
+    assertTrue(start.alerts().contains("before"));
+    assertEquals(NOW + 180000, r(start.state()).getLong("etaAt"));
   }
   @Test public void arrivalDoesNotAlarmForCollectedItems() throws Exception {
     JSONObject s = ride();
@@ -255,5 +254,24 @@ public class TripEngineTest {
     String words = Alerts.voiceText(r(ride()), "eta");
     assertTrue(words.contains("estimated arrival"));
     assertTrue(words.contains("If you're getting out"));
+  }
+  @Test public void collectingEverythingConfirmsOnceAndCancelsSnooze() throws Exception {
+    JSONObject s = tick(ride(),420).state();
+    s = TripEngine.apply(s,"snoozePreArrival",data(),NOW+425000).state();
+    JSONArray items=r(s).getJSONArray("items"); TripEngine.Result x=null;
+    for(int i=0;i<items.length();i++){x=TripEngine.apply(s,"collect",data("id",i),NOW+430000);s=x.state();}
+    assertTrue(x.alerts().contains("complete"));
+    assertFalse(pre(s).has("snoozeUntil"));
+    assertFalse(tick(s,490).alerts().contains("before"));
+    s=TripEngine.apply(s,"collect",data("id",0),NOW+500000).state();
+    x=TripEngine.apply(s,"collect",data("id",0),NOW+501000);
+    assertFalse(x.alerts().contains("complete"));
+  }
+  @Test public void snoozeDoesNotMoveArrivalAndSuppressesEtaAudioUntilDue() throws Exception {
+    JSONObject s=tick(ride(),590).state(); long eta=r(s).getLong("etaAt");
+    s=TripEngine.apply(s,"snoozePreArrival",data(),NOW+590000).state();
+    assertEquals(eta,r(s).getLong("etaAt"));
+    assertFalse(tick(s,600).alerts().contains("eta"));
+    assertTrue(tick(s,650).alerts().contains("before"));
   }
 }

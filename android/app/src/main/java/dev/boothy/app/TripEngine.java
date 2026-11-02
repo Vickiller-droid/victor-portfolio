@@ -108,7 +108,7 @@ public final class TripEngine {
           double minutes = c.optDouble("duration", 15);
           double duration = Double.isFinite(minutes) ? Math.max(3, Math.min(999, minutes)) : 15;
           put(r, "duration", duration);
-          put(r, "warningLeadMs", Math.min(180000L, (long)(duration * 40000)));
+          put(r, "warningLeadMs", 180000L);
           put(r, "startedAt", now);
           put(r, "clockAt", now);
           put(r, "etaAt", now + (long) (duration * 60000));
@@ -238,6 +238,16 @@ public final class TripEngine {
               put(item, "checked", !item.optBoolean("checked"));
           }
           put(obj(r, "preArrival"), "interacted", true);
+          if (allChecked(r)) {
+            JSONObject pre = obj(r, "preArrival");
+            put(pre, "status", "done"); pre.remove("snoozeUntil");
+            if (!r.optBoolean("completionAnnounced")) {
+              put(r, "completionAnnounced", true); alerts.add("complete");
+              log(r, "All items collected");
+            }
+          } else if ("done".equals(obj(r, "preArrival").optString("status")) && active(r)) {
+            put(r, "preArrival", freshPre(obj(r, "preArrival").optInt("revision") + 1));
+          }
         }
         break;
       case "updateItems":
@@ -337,7 +347,7 @@ public final class TripEngine {
     return new Result(s, alerts);
   }
 
-  // Short trips still get preparation time without alarming at departure.
+  // Preparation lead is three minutes, including an immediate warning on a three-minute trip.
   static long warningAt(JSONObject r) {
     return r.optLong("etaAt") - r.optLong("warningLeadMs", 180000L);
   }
@@ -380,7 +390,8 @@ public final class TripEngine {
     }
     if (fresh && now >= r.optLong("etaAt") && !r.optBoolean("etaReached")) {
       put(r, "etaReached", true);
-      if (!alerts.contains("before") && !allChecked(r)) alerts.add("eta");
+      if (!alerts.contains("before") && !allChecked(r)
+          && !p.has("snoozeUntil")) alerts.add("eta");
     }
   }
 
