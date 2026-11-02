@@ -6,7 +6,7 @@ const M=require('../public/boothy/model.js');
 function harness(initial){
  const nodes=new Map(), listeners={}, commands=[], calls={ticks:0,stops:0};
  function node(){return {dataset:{},hidden:false,innerHTML:'',textContent:'',open:false,setAttribute(){},removeAttribute(){},focus(){},scrollIntoView(){},addEventListener(){},showModal(){this.open=true;},close(){this.open=false;},querySelector(){return null;}};}
- for(const id of ['main','mode-notice','page-eyebrow','page-title','page-subtitle','notice-region','view','context-panel','storage-warning','toast'])nodes.set('#'+id,node());
+ for(const id of ['main','mode-notice','page-eyebrow','page-title','page-subtitle','notice-region','view','context-panel','storage-warning','toast','belongings-title'])nodes.set('#'+id,node());
  const storage=new Map();
  const document={querySelector:s=>nodes.get(s)||null,querySelectorAll:()=>[],addEventListener:(n,f)=>listeners[n]=f,createElement:node,body:{append:n=>nodes.set('#'+n.id,n)}};
  const prefs={sound:false,vibration:false};let voice=false;
@@ -33,4 +33,16 @@ test('native snooze renders persistent confirmation without replacing arrival es
  assert.match(h.nodes.get('#notice-region').innerHTML,/Reminder snoozed/);
  assert.match(h.nodes.get('#notice-region').innerHTML,/snooze-countdown/);
  assert.equal(s.ride.etaAt,eta);
+});
+
+test('collecting everything replaces the popup title and keeps a trip status',()=>{
+ let s=M.initial();s.config.duration=5;s=M.transition(s,'depart',{nowMs:Date.now()});
+ const h=harness(s);
+ for(const item of s.ride.items)s=M.transition(s,'collect',{id:item.id});
+ h.state(s);
+ assert.equal(h.nodes.get('#belongings-title').textContent,'You’ve got everything.');
+ assert.match(h.nodes.get('#notice-region').innerHTML,/Belongings reminders stopped/);
+ s=M.transition(s,'collect',{id:0});h.state(s);
+ assert.doesNotMatch(h.nodes.get('#notice-region').innerHTML,/Belongings reminders stopped/);
+ assert.notEqual(h.nodes.get('#belongings-title').textContent,'You’ve got everything.');
 });

@@ -10,7 +10,7 @@ with zipfile.ZipFile(apk) as z:
             files.append(src.name)
     html = z.read('assets/boothy/index.html').decode()
     assert 'android-bootstrap.js' in html
-    assert 'reliability-4' in html
+    assert 'reliability-5' in html
     app = z.read('assets/boothy/app.js').decode()
     assert "button('popupCheck', 'Check my things'" not in app
     assert 'buildVersion' in app

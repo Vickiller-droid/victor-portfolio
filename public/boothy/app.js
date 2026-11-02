@@ -38,6 +38,8 @@
   function snoozeNotice() { return snoozeSeconds()>0 ? `<section class="card card-pad" role="status"><strong>Reminder snoozed · <span id="snooze-countdown">${clock(snoozeSeconds())}</span></strong><p class="small-copy">Arrival estimate unchanged. The reminder will ring again.</p></section>` : ''; }
   function updateChecklistFeedback() {
     const all = state.ride.items?.length && state.ride.items.every(i=>i.checked);
+    const title = $('#belongings-title');
+    if(title)title.textContent=all?'You’ve got everything.':popupKind==='before'?'Almost there. Check your things.':'Before you leave. Check your things.';
     const label = $('#belongings-popup [data-action=popupDone]');
     if (label) label.textContent=all?'All items collected':state.ride.stage==='arrived'?'Close checklist':'Keep travelling';
     const snooze = $('#belongings-popup [data-action=popupSnooze]'); if(snooze)snooze.hidden=Boolean(all);
@@ -284,6 +286,7 @@
   function notices() {
     const r = state.ride;
     let result = snoozeNotice();
+    if (r.stage === 'inTransit' && r.items?.length && r.items.every(i=>i.checked)) result += '<section class="card card-pad" role="status"><strong>All items collected</strong><p class="small-copy">Belongings reminders stopped. Confirm when you arrive.</p></section>';
     if (r.stage === 'inTransit' && r.preArrival?.status === 'due') {
       const remaining = Math.ceil(M.remainingSeconds(r) / 60);
       result += `<section class="reminder-alert pre-arrival-alert" role="alert"><h2 class="reminder-message">${r.etaReached ? 'Check your things before you leave.' : 'Almost there. Get your things ready.'}</h2>${button('openChecklist', 'Check my things', 'primary full', '', 'bag')}</section>`;

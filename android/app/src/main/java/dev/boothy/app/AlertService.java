@@ -38,7 +38,7 @@ public class AlertService extends Service {
     Alerts.channels(this);
     manager = getSystemService(AudioManager.class);
     focus =
-        new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+        new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(attributes)
             .setOnAudioFocusChangeListener(
                 change -> {
@@ -195,14 +195,14 @@ public class AlertService extends Service {
                       TripStore.note(AlertService.this, "Voice playback failed");
                       handler.post(
                           () -> {
-                            if (token == generation) stopSelf();
+                            if (token == generation) finishSpeech();
                           });
                     }
                   });
               if (speech.speak(words, TextToSpeech.QUEUE_FLUSH, null, "boothy-reminder")
                   != TextToSpeech.SUCCESS) {
-                TripStore.note(this, "Voice request failed");
-                stopSelf();
+                TripStore.note(this, "Voice request failed · tone fallback");
+                finishSpeech();
               }
             }));
   }

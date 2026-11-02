@@ -35,6 +35,17 @@ public class AndroidDeliveryTest {
   }
 
   @Test
+  public void reminderRequestsDuckingInsteadOfPausingOtherMedia() throws Exception {
+    var controller = Robolectric.buildService(AlertService.class).create();
+    var field = AlertService.class.getDeclaredField("focus");
+    field.setAccessible(true);
+    var request = (android.media.AudioFocusRequest) field.get(controller.get());
+    assertEquals(android.media.AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+        request.getFocusGain());
+    controller.destroy();
+  }
+
+  @Test
   public void startAndCancelActuallyRegisterAndRemoveAndroidAlarm() throws Exception {
     TripStore.apply(app, "depart", new JSONObject());
     assertNotNull(alarms.getNextAlarmClock());

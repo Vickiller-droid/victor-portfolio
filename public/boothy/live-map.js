@@ -2,18 +2,20 @@
   'use strict';
   const G = window.BoothyLocation;
   let dialog, map, marker, accuracyCircle, pin, pendingPoint, target, onSelect;
+  let tilesFailed = false;
   let latest = { status: 'off', fix: null }, follow = true, loading = null, keepTracking = false;
   const tracker = G.createTracker(window.BoothyNative?.geolocation || navigator.geolocation, update);
   const labels = { off: 'GPS is off.', locating: 'Finding your location…', live: 'Live location', imprecise: 'Location is approximate. Move outdoors for a better fix.', stale: 'Location has not updated. Keep Boothy open and check GPS.', denied: window.BoothyNative?.available ? 'Location is blocked. Open Android Settings → Apps → Boothy Pilot → Permissions → Location, then try again.' : 'Location is blocked. Allow it in this site’s permissions, then try again.', timeout: 'GPS is taking longer. Try again outdoors.', unavailable: 'Location is unavailable. Your trip timer still works.', unsupported: 'This browser cannot provide location.' };
   function ensureDialog() {
     if (dialog) return;
     dialog = document.createElement('dialog'); dialog.className = 'live-map-dialog'; dialog.setAttribute('aria-labelledby', 'live-map-title');
-    dialog.innerHTML = '<div class="map-dialog-header"><h2 id="live-map-title">Your trip map</h2><button type="button" class="text-button" data-map="close">Close map</button></div><p class="small-copy map-explanation">Tap the map to choose a destination pin. GPS works while Boothy stays active.</p><div id="live-map-canvas" role="region" aria-label="Interactive OpenStreetMap"></div><p class="map-status" role="status" aria-live="polite">Load the map to get started.</p><p class="map-distance"></p><div class="map-controls"><button type="button" class="button primary" data-map="gps">Use my live location</button><button type="button" class="button outline" data-map="center" disabled>Centre on me</button><button type="button" class="button outline" data-map="pinCenter">Pin map centre</button><button type="button" class="button outline" data-map="pin" disabled>Use destination pin</button></div><p class="small-copy map-privacy">Map tiles are supplied by OpenStreetMap for the area you view. Your live GPS fixes stay in this tab; no travel history is saved. This map does not calculate road routes or arrival times.</p>';
+    dialog.innerHTML = '<div class="map-dialog-header"><h2 id="live-map-title">Your trip map</h2><button type="button" class="text-button" data-map="close">Close map</button></div><p class="small-copy map-explanation">Move the map, then tap your destination. Save the pin below. Your arrival time stays manual.</p><div id="live-map-canvas" role="region" aria-label="Interactive OpenStreetMap"></div><p class="map-status" role="status" aria-live="polite">Load the map to get started.</p><p class="map-selection" role="status" aria-live="polite"></p><p class="map-distance"></p><div class="map-controls"><button type="button" class="button primary" data-map="gps">Use my live location</button><button type="button" class="button outline" data-map="center" disabled>Centre on me</button><button type="button" class="button outline" data-map="destination" disabled>Show destination</button><button type="button" class="button outline" data-map="pinCenter">Pin map centre</button><button type="button" class="button outline" data-map="pin" disabled>Use destination pin</button></div><p class="small-copy map-privacy">Map tiles are supplied by OpenStreetMap for the area you view. Your live GPS fixes stay in this tab; no travel history is saved. This map does not calculate road routes or arrival times.</p>';
     document.body.append(dialog);
     dialog.querySelector('[data-map=close]').onclick = () => dialog.close();
     dialog.addEventListener('close', () => { if (!keepTracking) tracker.stop(); });
     dialog.querySelector('[data-map=gps]').onclick = () => { if (tracker.running()) tracker.stop(); else { follow = true; tracker.start(); } paint(); };
     dialog.querySelector('[data-map=center]').onclick = () => { if (latest.fix && map) { follow = true; map.setView([latest.fix.lat, latest.fix.lng], 15); } };
+    dialog.querySelector('[data-map=destination]').onclick = () => { const p = pendingPoint || target; if (map && p) { follow = false; map.setView([p.lat, p.lng], 16); } };
     dialog.querySelector('[data-map=pinCenter]').onclick = () => { if (map) { follow = false; const c = map.getCenter(); pendingPoint = { lat: c.lat, lng: c.lng }; showPin(pendingPoint); paint(); } };
     dialog.querySelector('[data-map=pin]').onclick = () => { if (!pendingPoint) return; target = { ...pendingPoint }; onSelect?.(target); paint(); dialog.close(); };
   }
@@ -33,8 +35,11 @@
   function paint() {
     if (!dialog) return;
     const accuracy = latest.fix ? ' · ±' + Math.round(latest.fix.accuracy) + ' m' : '';
-    dialog.querySelector('.map-status').textContent = (labels[latest.status] || labels.unavailable) + accuracy;
+    dialog.querySelector('.map-status').textContent = tilesFailed ? 'Map tiles could not load. Check your connection; your trip timer still works.' : (labels[latest.status] || labels.unavailable) + accuracy;
     const selected = pendingPoint || target;
+    dialog.querySelector('.map-selection').textContent = selected ? 'Destination pin: ' + selected.lat.toFixed(5) + ', ' + selected.lng.toFixed(5) + '. Tap Save destination to confirm.' : 'No destination pin yet. Tap the map or pin its centre.';
+    dialog.querySelector('[data-map=destination]').disabled = !selected;
+    dialog.querySelector('[data-map=pin]').textContent = 'Save destination';
     const d = latest.status === 'live' && latest.fix && selected ? G.distance(latest.fix, selected) : null;
     dialog.querySelector('.map-distance').textContent = d === null ? '' : (d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m') + ' to your pin · straight-line distance';
     dialog.querySelector('[data-map=gps]').textContent = tracker.running() ? 'Stop live location' : 'Use my live location';
@@ -67,14 +72,13 @@
             const config = await response.json();
             if (!config.tileUrl?.startsWith('https://')) throw Error('map configuration invalid');
             map = L.map('live-map-canvas', { zoomControl: true, scrollWheelZoom: false });
-            L.tileLayer(config.tileUrl, { attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>', maxZoom: Math.min(19, Number(config.maxZoom) || 19), keepBuffer: 0 }).addTo(map).on('tileerror', () => { dialog.querySelector('.map-status').textContent = 'Map tiles could not load. Check your connection; your trip timer still works.'; });
+            L.tileLayer(config.tileUrl, { attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>', maxZoom: Math.min(19, Number(config.maxZoom) || 19), keepBuffer: 0 }).addTo(map).on('tileerror', () => { tilesFailed = true; paint(); }).on('tileload', () => { tilesFailed = false; paint(); });
             map.setView([9.06, 7.49], 11);
             map.on('dragstart', () => { follow = false; });
             map.on('click', event => {
               follow = false;
               pendingPoint = { lat: event.latlng.lat, lng: event.latlng.lng };
               showPin(pendingPoint); paint();
-              dialog.querySelector('.map-status').textContent = 'Pin selected. Tap “Use destination pin” to save it.';
             });
           } finally { clearTimeout(timer); }
         })().catch(error => { loading = null; throw error; });
