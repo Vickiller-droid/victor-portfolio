@@ -66,3 +66,10 @@ test('feedback prepares a reviewable draft and never claims a report was deliver
  assert.match(h.nodes.get('#feedback-result').textContent,/Nothing has been sent yet/);
  assert.equal(h.commands.length,0);
 });
+
+test('editing feedback hides the old draft until it is regenerated',async()=>{
+ const h=harness(M.initial());await h.feedback({message:'Original report'});
+ h.listeners.input({target:{closest:s=>s==='[data-form=feedback]'?{}:null}});
+ assert.equal(h.nodes.get('#feedback-draft').hidden,true);
+ assert.match(h.nodes.get('#feedback-result').textContent,/latest changes/);
+});

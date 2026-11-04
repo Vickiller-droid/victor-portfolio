@@ -553,7 +553,7 @@
       send('saveParking', { location: text('location'), note: text('note') }); parkingPrompt = false; render(); toast('Parking note saved on this device.');
     }
   });
-  document.addEventListener('input', e => { if (e.target.closest('[data-form=setupRoute]') && e.target.name) { if (e.target.name === 'destination') delete setupConfig().destinationPoint; setupConfig()[e.target.name] = e.target.type === 'checkbox' ? e.target.checked : e.target.name === 'duration' ? Number(e.target.value) : e.target.value; } if (e.target.name === 'items' && e.target.closest('[data-form=setupItems]')) setupConfig().items = e.target.value.split(','); if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
+  document.addEventListener('input', e => { if(e.target.closest('[data-form=feedback]')) { const draft=$('#feedback-draft'); if(draft)draft.hidden=true; const result=$('#feedback-result'); if(result)result.textContent='Prepare feedback to include your latest changes.'; } if (e.target.closest('[data-form=setupRoute]') && e.target.name) { if (e.target.name === 'destination') delete setupConfig().destinationPoint; setupConfig()[e.target.name] = e.target.type === 'checkbox' ? e.target.checked : e.target.name === 'duration' ? Number(e.target.value) : e.target.value; } if (e.target.name === 'items' && e.target.closest('[data-form=setupItems]')) setupConfig().items = e.target.value.split(','); if (e.target.setCustomValidity) e.target.setCustomValidity(''); });
   document.addEventListener('change', e => {
     if (e.target.matches('[data-voice]')) window.BoothyVoice?.setEnabled(e.target.checked);
     if (e.target.matches('[data-extra-reminder]')) e.target.closest('form').querySelector('fieldset').disabled = !e.target.checked;
