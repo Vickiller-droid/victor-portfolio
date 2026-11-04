@@ -61,6 +61,7 @@ public final class Alerts {
             .setContentIntent(open(c, kind, ride))
             .setAutoCancel(!ongoing)
             .setOngoing(ongoing)
+            .setShowWhen(!ongoing)
             .setCategory(ongoing ? Notification.CATEGORY_SERVICE : Notification.CATEGORY_REMINDER)
             .setVisibility(Notification.VISIBILITY_PRIVATE);
     if (!ongoing) {

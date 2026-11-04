@@ -6,7 +6,7 @@
   const M = window.BoothyModel;
   let storageOK = true, state;
   try { state = M.restore(localStorage.getItem(KEY)); } catch { state = M.initial(); storageOK = false; }
-  let tab = ['ride', 'things', 'reminders', 'parking', 'help'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ride';
+  let tab = ['ride', 'things', 'reminders', 'parking', 'help', 'feedback'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'ride';
   let setupStep = 0, setupDraft = null;
   let phoneTestTimer = null, phoneTestStatus = '';
   let detectionTimer, toastTimer, parkingPrompt = false, capturingParking = false;
@@ -188,7 +188,7 @@
     if (setupStep === 0) return `${setupProgress()}<section class="card card-pad setup-card"><form data-form="setupRoute">
       <label class="field">Where are you going?<input name="destination" value="${escape(c.destination)}" placeholder="e.g. School or Masaka" required maxlength="100" autocomplete="off"></label>
       <label class="field">How many minutes away?<input name="duration" type="number" inputmode="numeric" min="3" max="999" value="${c.duration}" required><span class="field-note">We’ll warn you 3 minutes before arrival. On a 3-minute trip, the warning starts as you leave.</span></label>
-      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Choose on map', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'Optional. You can start with just your time estimate.'}</p></div>`}
+      ${demo ? '' : `<div class="map-entry">${button('openTripMap', c.destinationPoint ? 'Change destination pin' : 'Choose on map', 'outline full', '', 'pin')}<p class="field-note">${c.destinationPoint ? 'Destination pin selected.' : 'Optional GPS pin. This map does not calculate traffic or arrival time.'}</p></div>`}
       <details class="form-details"><summary>Starting point & parking (optional)</summary>
       <label class="field">Starting point<input name="origin" value="${escape(c.origin)}" maxlength="100" placeholder="Where you are now"></label>
       <label class="field">Travelling as<select name="transport"><option value="passenger" ${c.transport !== 'car' ? 'selected' : ''}>Passenger</option><option value="car" ${c.transport === 'car' ? 'selected' : ''}>Driver</option></select></label>
@@ -210,11 +210,11 @@
     return `<section class="card card-pad active-trip"><div class="card-top"><span class="section-label">${real ? 'ON YOUR WAY' : 'DEMO TRIP'}</span><span class="pill">${checked}/${r.items.length} items ready</span></div>
       <span class="trip-emblem">${icon("bag")}</span><h2 class="destination-title">${escape(r.destination)}</h2>
       <p class="arrival-estimate">${real ? `<strong id="ride-eta">${!M.routeFresh(r) ? 'Live timing paused' : remaining > 0 ? 'About ' + remaining + ' min to arrival' : 'Estimate reached'}</strong>` : `<strong>${remaining} demo minutes left</strong>`}</p>
-      <p class="small-copy">${real ? (r.needsResume ? 'Your trip time needs checking. Enter a new time below to resume reminders.' : r.etaSource === 'route' ? (M.routeFresh(r) ? 'Updated from your road route.' : 'Reconnect location or enter a new time below. Arrival warnings are paused.') : 'Your time estimate.') : 'Use the controls below to preview the reminders.'}</p>
+      <p class="small-copy">${real ? (r.needsResume ? 'Your trip time needs checking. Enter a new time below to resume reminders.' : r.etaSource === 'route' ? (M.routeFresh(r) ? 'Updated from your road route.' : 'Reconnect location or enter a new time below. Arrival warnings are paused.') : 'Manual estimate · update it if traffic changes.') : 'Use the controls below to preview the reminders.'}</p>
       <div class="timing-strip"><span>3-min warning</span><span>1-min snooze</span></div>
-      ${button('arrive', real ? 'I’ve arrived' : 'Preview arrival', 'primary full', '', 'pin')}
+      ${button('openChecklist', checked === r.items.length ? 'Review my things' : 'Check my things', 'primary full', '', 'bag')}
+      <div class="trip-secondary">${button('arrive', real ? 'I’ve arrived' : 'Preview arrival', 'outline full', '', 'pin')}</div>
       ${real ? `<div class="trip-secondary">${button('openTripMap', 'Open live map', 'outline full', '', 'pin')}</div>` : ''}
-      <div class="trip-secondary">${button('openChecklist', 'Check my things', 'outline full', '', 'bag')}</div>
       <details class="form-details"><summary>Taking longer? Change the time</summary><form data-form="eta"><label class="field">Minutes left<input name="minutes" type="number" inputmode="numeric" min="1" max="999" value="${Math.max(1, remaining)}" required></label><button type="submit" class="button outline full">Update time</button></form></details>
       ${real ? '' : `<div class="simulation-controls"><div class="button-row">${button('advance', 'Skip 1 minute', 'outline')}${remaining > 3 ? button('nearArrival', 'Preview arrival reminder', 'outline') : ''}</div></div>`}</section>
       <details class="form-details"><summary>Trip details</summary><p class="small-copy">${escape(r.origin)} → ${escape(r.destination)}</p>${eventLog()}${button('confirmCancel', 'Cancel this trip', 'text-button danger-action')}</details>`;
@@ -247,8 +247,19 @@
   function helpView() {
     return `<section class="card card-pad"><h2>One trip. Three steps.</h2><ol class="help-list"><li>Set your destination and arrival estimate.</li><li>Add the things you’re taking.</li><li>Start the ride. When Boothy reminds you, check each item before leaving.</li></ol></section>
     <section class="card card-pad"><h2>About your reminders</h2><p class="small-copy">The first warning is 3 minutes before your estimate. A 3-minute trip warns at departure. With voice enabled, a brief chime comes first, then your spoken reminder and the remaining tone. If you don’t respond, it repeats once after a minute. Opening the checklist or stopping the sound cancels that repeat.</p><p class="small-copy">Snooze gives you 1 more minute. You confirm when you’ve arrived.</p><details class="form-details"><summary>Location, privacy & background use</summary><p class="small-copy">The browser version needs to stay open for timely reminders. A map pin alone does not change your arrival time. When road routing is connected, the app labels route estimates separately.</p><p class="small-copy">Trip details and parking stay on this device. Opening a map shares the viewed area with its map provider. Live routing sends your position and destination to the route provider only when you turn it on. You can stop location at any time.</p><p class="small-copy">Voice uses your phone’s available voice and audio output. Try it with your headphones before a trip. Phone settings control volume, banners and Do Not Disturb.</p></details></section>
-    <a class="button outline full" href="mailto:alabivictordaniel@gmail.com?subject=Boothy%20feedback">Send Victor feedback ${icon('arrow')}</a>`;
+    <button class="button outline full" data-tab="feedback">Report a problem / suggest an improvement ${icon('arrow')}</button>`;
   }
+  function feedbackView() {
+    return `<section class="card card-pad"><p class="small-copy">Describe a problem or suggest an improvement. Only what you write below, this app’s version, and your current sound/voice settings go into the email draft. No trip locations or belongings are added automatically.</p><form data-form="feedback">
+      <label class="field">What is this about?<select name="kind"><option>Problem</option><option>Suggestion</option></select></label>
+      <label class="field">What happened, or what would help?<textarea name="message" required maxlength="1200"></textarea></label>
+      <label class="field">What did you expect? (optional)<textarea name="expected" maxlength="500"></textarea></label>
+      <label class="field">Phone model & Android version (optional)<input name="phone" maxlength="100" placeholder="e.g. Tecno Camon 12 Pro, Android 9"></label>
+      <label class="field">Screen at the time<select name="screen"><option>Not specified</option><option>App open</option><option>Using another app</option><option>Screen locked</option></select></label>
+      <button class="button primary full" type="submit">Prepare feedback</button></form>
+      <div id="feedback-draft" hidden><div class="divider"></div><label class="field">Your report<textarea id="feedback-report" rows="10" readonly></textarea></label><a id="feedback-email" class="button primary full">Open email draft</a>${button('copyFeedback','Copy report','outline full')}<p class="small-copy">To: <a href="mailto:alabivictordaniel@gmail.com">alabivictordaniel@gmail.com</a>. Your email address is shared when you send from your email app. Don’t include passwords, PINs or private locations.</p></div><p id="feedback-result" role="status" aria-live="polite"></p></section>`;
+  }
+
   function alertOptions() {
     const device = window.BoothyDevice;
     const prefs = device?.options() || {}, capabilities = device?.capabilities() || {};
@@ -305,6 +316,7 @@
       ride: ['YOUR TRAVEL COMPANION', state.ride.stage === 'inTransit' ? 'Your trip' : state.ride.stage === 'arrived' ? 'Before you go' : 'Take the ride. Keep your things.', state.ride.stage === 'ready' ? 'A timely reminder before you step out.' : ''],
       things: ['', 'Your things, remembered.', ''],
       help: ['', 'A little help.', ''],
+      feedback: ['', 'Help improve Boothy.', ''],
       reminders: ['', 'Make it your reminder.', ''],
       parking: ['', 'Your parking spot', '']
     };
@@ -315,7 +327,7 @@
     $('#page-eyebrow').textContent = title[0]; $('#page-title').textContent = title[1]; $('#page-subtitle').textContent = title[2];
     document.querySelectorAll('.nav-item').forEach(el => { el.classList.toggle('active', el.dataset.tab === tab); if (el.dataset.tab === tab) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); });
     $('#notice-region').innerHTML = notices();
-    $('#view').innerHTML = tab === 'reminders' ? remindersView() : tab === 'things' ? thingsView() : tab === 'help' ? helpView() : tab === 'parking' ? parkingView() : state.ride.stage === 'inTransit' ? transitView() : state.ride.stage === 'arrived' ? arrivalView() : readyView();
+    $('#view').innerHTML = tab === 'reminders' ? remindersView() : tab === 'things' ? thingsView() : tab === 'help' ? helpView() : tab === 'feedback' ? feedbackView() : tab === 'parking' ? parkingView() : state.ride.stage === 'inTransit' ? transitView() : state.ride.stage === 'arrived' ? arrivalView() : readyView();
     $('#context-panel').innerHTML = context();
     $('#storage-warning').hidden = storageOK;
     if (action && !focus?.closest('#belongings-popup')) document.querySelector(`[data-action="${action}"]${itemId !== undefined ? `[data-id="${itemId}"]` : ''}`)?.focus({ preventScroll: true });
@@ -343,6 +355,13 @@
       await window.BoothyNative?.sync(state,window.BoothyDevice.options(),false);markReviewed();return;
     }
 
+    if (a === 'copyFeedback') {
+      const report=$('#feedback-report');
+      if(!report)return;
+      try { await navigator.clipboard.writeText(report.value); $('#feedback-result').textContent='Report copied. Paste it into an email to alabivictordaniel@gmail.com.'; }
+      catch { report.focus(); report.select(); $('#feedback-result').textContent='Select and copy the report, then email it to alabivictordaniel@gmail.com.'; }
+      return;
+    }
     if (a === 'openMenu') { window.BoothyTheme?.sync(); $('#app-menu').showModal(); return; }
     if (a === 'closeMenu') { $('#app-menu').close(); return; }
     if (a === 'nativeDiagnostics') { const entries=await window.BoothyNative?.diagnostics(); const out=$('.native-diagnostics'); if(out) out.textContent=Array.isArray(entries) ? entries.slice(0,12).map(e=>new Date(e.time).toLocaleTimeString()+' · '+e.event).join(' / ') : 'Could not load diagnostics.';return; }
@@ -479,6 +498,15 @@
     if (!form) return;
     e.preventDefault();
     if (!form.reportValidity()) return;
+    if(form.dataset.form === 'feedback') {
+      const value=name=>form.elements.namedItem(name)?.value || '';
+      const report=window.BoothyFeedback.compose({kind:value('kind'),message:value('message'),expected:value('expected'),phone:value('phone'),screen:value('screen'),version:window.BoothyBoot?.buildVersion || 'web',sound:window.BoothyDevice?.options().sound===true,voice:window.BoothyVoice?.enabled()===true});
+      const panel=$('#feedback-draft');panel.hidden=false;
+      $('#feedback-report').value=report.body;
+      const link=$('#feedback-email');link.href=report.url;
+      $('#feedback-result').textContent='Draft ready. Open your email app and send it, or copy the report. Nothing has been sent yet.';
+      panel.scrollIntoView({block:'nearest',behavior:'smooth'});return;
+    }
     const f = name => form.elements.namedItem(name);
     const text = name => f(name).value.trim();
     const requireText = name => {
@@ -557,7 +585,7 @@
   window.addEventListener('storage', e => {
     if (!window.BoothyNative?.available && e.key === KEY && e.newValue) { state = M.restore(e.newValue); render(); syncClock(); }
   });
-  window.addEventListener('hashchange', () => { if (openNotification()) return; const next = location.hash.slice(1); if (['ride', 'things', 'reminders', 'parking', 'help'].includes(next) && next !== tab) { tab = next; render(); } });
+  window.addEventListener('hashchange', () => { if (openNotification()) return; const next = location.hash.slice(1); if (['ride', 'things', 'reminders', 'parking', 'help', 'feedback'].includes(next) && next !== tab) { tab = next; render(); } });
   window.BoothyBack=()=>{const dialog=document.querySelector('dialog[open]');if(!dialog)return false;if(dialog.id==='belongings-popup'){send('interactReminder');closePopup();}else dialog.close();return true;};
   window.BoothyTheme?.sync();
   const nativeSaved = window.BoothyNative?.restore();

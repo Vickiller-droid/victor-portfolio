@@ -3,6 +3,11 @@ on:
   push:
     branches: [boothy-reliability-android]
   workflow_dispatch:
+    inputs:
+      signed_release:
+        description: Build an owner-signed early-access installer (requires configured signing secrets)
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -28,17 +33,74 @@ jobs:
       - run: gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon
         working-directory: android
       - run: python3 scripts/verify-boothy-apk.py
-      - name: Name phone installer
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Boothy-Pilot-0.2.4.apk
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Boothy-Pilot-0.2.4-APK
-          path: Boothy-Pilot-0.2.4.apk
+      - name: Verify release signing guard and release build with a disposable CI fixture
+        env:
+          BOOTHY_SIGNING_STORE_FILE: ${{ runner.temp }}/boothy-ci-fixture.p12
+          BOOTHY_SIGNING_STORE_PASSWORD: ci-fixture-only
+          BOOTHY_SIGNING_KEY_ALIAS: boothy
+          BOOTHY_SIGNING_KEY_PASSWORD: ci-fixture-only
+        shell: bash
+        run: |
+          if env -u BOOTHY_SIGNING_STORE_FILE -u BOOTHY_SIGNING_STORE_PASSWORD -u BOOTHY_SIGNING_KEY_ALIAS -u BOOTHY_SIGNING_KEY_PASSWORD gradle -p android :app:requireBoothySigning --no-daemon > "$RUNNER_TEMP/signing-guard.log" 2>&1; then
+            echo 'ERROR: release guard accepted missing credentials'
+            exit 1
+          fi
+          grep -q 'Missing release signing setting' "$RUNNER_TEMP/signing-guard.log"
+          keytool -genkeypair -alias boothy -keyalg RSA -keysize 2048 -validity 2 -storetype PKCS12 -keystore "$BOOTHY_SIGNING_STORE_FILE" -storepass:env BOOTHY_SIGNING_STORE_PASSWORD -keypass:env BOOTHY_SIGNING_KEY_PASSWORD -dname 'CN=Boothy disposable CI fixture'
+          gradle -p android :app:assembleRelease :app:lintRelease --no-daemon
+          python3 scripts/verify-boothy-apk.py android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify android/app/build/outputs/apk/release/app-release.apk
+          rm -f android/app/build/outputs/apk/release/app-release.apk "$BOOTHY_SIGNING_STORE_FILE"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Boothy-Pilot-0.2.4-and-test-reports
+          name: Boothy-0.2.5-verification-reports-NOT-AN-INSTALLER
           path: |
-            android/app/build/outputs/apk/debug/*.apk
             android/app/build/reports/tests/
-            android/app/build/reports/lint-results-debug.html
+            android/app/build/reports/lint-results-*.html
+            android/app/build/outputs/apk/**/verification.json
+  signed-release:
+    if: github.event_name == 'workflow_dispatch' && inputs.signed_release
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check owner signing configuration
+        env:
+          KEYSTORE: ${{ secrets.BOOTHY_SIGNING_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.BOOTHY_SIGNING_STORE_PASSWORD }}
+          CERTIFICATE: ${{ secrets.BOOTHY_SIGNING_CERT_SHA256 }}
+        run: |
+          test -n "$KEYSTORE" && test -n "$PASSWORD" && test -n "$CERTIFICATE" || { echo 'Configure the three owner signing secrets described in docs/boothy-release-signing.md. No installer was created.'; exit 1; }
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build and verify owner-signed installer
+        env:
+          BOOTHY_SIGNING_KEYSTORE_BASE64: ${{ secrets.BOOTHY_SIGNING_KEYSTORE_BASE64 }}
+          BOOTHY_SIGNING_STORE_FILE: ${{ runner.temp }}/boothy-owner.p12
+          BOOTHY_SIGNING_STORE_PASSWORD: ${{ secrets.BOOTHY_SIGNING_STORE_PASSWORD }}
+          BOOTHY_SIGNING_KEY_ALIAS: boothy
+          BOOTHY_SIGNING_KEY_PASSWORD: ${{ secrets.BOOTHY_SIGNING_STORE_PASSWORD }}
+          EXPECTED_CERT: ${{ secrets.BOOTHY_SIGNING_CERT_SHA256 }}
+        run: |
+          umask 077
+          printf '%s' "$BOOTHY_SIGNING_KEYSTORE_BASE64" | base64 --decode > "$BOOTHY_SIGNING_STORE_FILE"
+          trap 'rm -f "$BOOTHY_SIGNING_STORE_FILE"' EXIT
+          gradle -p android :app:assembleRelease :app:lintRelease --no-daemon
+          python3 scripts/verify-boothy-apk.py android/app/build/outputs/apk/release/app-release.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/boothy-cert.txt"
+          python3 scripts/verify-boothy-certificate.py "$RUNNER_TEMP/boothy-cert.txt"
+          cp android/app/build/outputs/apk/release/app-release.apk Boothy-0.2.5-Early-Access.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Boothy-0.2.5-OWNER-SIGNED-APK
+          path: Boothy-0.2.5-Early-Access.apk

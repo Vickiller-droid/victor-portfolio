@@ -1,7 +1,7 @@
 """Verify actual packaged UI bytes, not merely source test results."""
 from pathlib import Path
-import hashlib, json, zipfile
-apk = Path('android/app/build/outputs/apk/debug/app-debug.apk')
+import hashlib, json, zipfile, sys
+apk = Path(sys.argv[1]) if len(sys.argv)>1 else Path('android/app/build/outputs/apk/debug/app-debug.apk')
 with zipfile.ZipFile(apk) as z:
     files = []
     for src in sorted(Path('public/boothy').glob('*')):
@@ -10,7 +10,7 @@ with zipfile.ZipFile(apk) as z:
             files.append(src.name)
     html = z.read('assets/boothy/index.html').decode()
     assert 'android-bootstrap.js' in html
-    assert 'reliability-5' in html
+    assert 'reliability-6' in html
     app = z.read('assets/boothy/app.js').decode()
     assert "button('popupCheck', 'Check my things'" not in app
     assert 'buildVersion' in app

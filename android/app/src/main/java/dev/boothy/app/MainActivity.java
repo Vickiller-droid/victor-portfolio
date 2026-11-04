@@ -190,8 +190,9 @@ public class MainActivity extends ComponentActivity {
                 && u.getPath().startsWith("/assets/boothy/")) return false;
             if (r.isForMainFrame() && List.of("https", "mailto").contains(u.getScheme()))
               try {
-                startActivity(new Intent(Intent.ACTION_VIEW, u));
+                startActivity(new Intent("mailto".equals(u.getScheme()) ? Intent.ACTION_SENDTO : Intent.ACTION_VIEW, u));
               } catch (Exception ignored) {
+                Toast.makeText(MainActivity.this, "No app could open this link. For feedback, copy the report and send it later.", Toast.LENGTH_LONG).show();
               }
             return true;
           }

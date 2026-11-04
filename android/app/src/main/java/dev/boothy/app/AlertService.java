@@ -72,8 +72,8 @@ public class AlertService extends Service {
         11,
         Alerts.build(
             this,
-            "Boothy reminder",
-            "Tap to check your things.",
+            "complete".equals(kind) ? "Boothy · completion voice" : "Boothy · reminder playing",
+            "Audio is active. Open Boothy to review your checklist.",
             kind == null ? "test" : kind,
             ride == null ? "" : ride,
             true));

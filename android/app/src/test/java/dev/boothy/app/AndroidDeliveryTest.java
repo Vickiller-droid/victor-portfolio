@@ -35,6 +35,19 @@ public class AndroidDeliveryTest {
   }
 
   @Test
+  public void actionableReminderAndSupportingServiceHaveDistinctRoles() {
+    Notification reminder = Alerts.build(app, "Get your things ready", "Check your things", "before", "r", false);
+    Notification service = Alerts.build(app, "Boothy · reminder playing", "Audio is active", "before", "r", true);
+    assertEquals(Alerts.CHANNEL, reminder.getChannelId());
+    assertEquals(2, reminder.actions.length);
+    assertEquals("Snooze 1 min", reminder.actions[1].title.toString());
+    assertEquals(Alerts.SERVICE_CHANNEL, service.getChannelId());
+    assertTrue(service.actions == null || service.actions.length == 0);
+    assertFalse(service.extras.getBoolean(Notification.EXTRA_SHOW_WHEN));
+    assertEquals(Notification.VISIBILITY_PRIVATE, reminder.visibility);
+  }
+
+  @Test
   public void reminderRequestsDuckingInsteadOfPausingOtherMedia() throws Exception {
     shadowOf(app).grantPermissions("dev.boothy.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION");
     var controller = Robolectric.buildService(AlertService.class).create();

@@ -6,9 +6,22 @@ android {
         applicationId 'dev.boothy.app'
         minSdk 26
         targetSdk 36
-        versionCode 5
-        versionName '0.2.4-pilot'
+        versionCode 6
+        versionName '0.2.5-early-access'
         buildConfigField 'String', 'MAPS_KEY', '"' + (System.getenv('BOOTHY_GOOGLE_MAPS_ANDROID_KEY') ?: '').replace('\\','\\\\').replace('"','\\"') + '"'
+    }
+    signingConfigs {
+        release {
+            def keyPath = System.getenv('BOOTHY_SIGNING_STORE_FILE')
+            if (keyPath) storeFile file(keyPath)
+            storePassword System.getenv('BOOTHY_SIGNING_STORE_PASSWORD')
+            keyAlias System.getenv('BOOTHY_SIGNING_KEY_ALIAS')
+            keyPassword System.getenv('BOOTHY_SIGNING_KEY_PASSWORD')
+        }
+    }
+    buildTypes {
+        debug { versionNameSuffix '-debug' }
+        release { signingConfig signingConfigs.release }
     }
     buildFeatures { buildConfig true }
     compileOptions { coreLibraryDesugaringEnabled true; sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
@@ -36,3 +49,16 @@ tasks.withType(Test).configureEach {
         if (System.getProperty(key)) systemProperty key, System.getProperty(key)
     }
 }
+
+// Fail closed: release builds must never silently use a disposable debug certificate.
+def requireBoothySigning = tasks.register('requireBoothySigning') {
+    doLast {
+        ['BOOTHY_SIGNING_STORE_FILE', 'BOOTHY_SIGNING_STORE_PASSWORD',
+         'BOOTHY_SIGNING_KEY_ALIAS', 'BOOTHY_SIGNING_KEY_PASSWORD'].each { name ->
+            if (!System.getenv(name)) throw new GradleException("Missing release signing setting: " + name)
+        }
+        if (!file(System.getenv('BOOTHY_SIGNING_STORE_FILE')).isFile())
+            throw new GradleException('Release signing keystore does not exist')
+    }
+}
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn requireBoothySigning }
