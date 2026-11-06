@@ -3,6 +3,7 @@
 
 
 import { useEffect, useState, useRef } from "react";
+import PortfolioEntrance, { FlowingLines } from "./PortfolioEntrance";
 
 import {
 
@@ -192,7 +193,7 @@ entry.target.classList.add("isVisible");
 
       <header className="header">
 
-        <a className="wordmark" href="#top" aria-label="Victor, home">victor<span>.</span></a>
+        <a className="wordmark" href="#top" aria-label="Victoralabidaniel, home">victoralabidaniel<span>.</span></a>
 
         <nav className="nav" aria-label="Main navigation">
 
@@ -213,12 +214,13 @@ entry.target.classList.add("isVisible");
 
 
       <section className="hero" id="top">
+        <FlowingLines/>
 
         <div className="heroCopy revealOnScroll">
 
           <p className="eyebrow"><span className="statusDot"/> SOFTWARE DEVELOPER · LEARNING BY BUILDING</p>
 
-          <h1>Thoughtful software.<br/><em>Practical solutions.</em></h1>
+          <PortfolioEntrance/>
 
           <p className="intro">I build useful digital products through code, experimentation, and problem-solving.</p>
 

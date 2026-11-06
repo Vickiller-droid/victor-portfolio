@@ -168,3 +168,20 @@ body.waitlistOpen{overflow:hidden}
 @keyframes waitlistSpin{to{transform:rotate(360deg)}}
 @media(max-width:480px){.waitlistDialog{padding:38px 22px 24px}}
 @media(prefers-reduced-motion:reduce){.boothyStatus,.boothyStatus::before,.waitlistSpinner{animation:none}}
+
+/* Approved portfolio motion: scoped so project mockups retain their own transforms. */
+.hero{position:relative;isolation:isolate}
+.portfolioFlow{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.24;overflow:hidden;color:var(--primary)}
+.portfolioFlow path{stroke:currentColor;stroke-width:.8;stroke-dasharray:90 240;animation:portfolioFlow 20s linear infinite}
+@keyframes portfolioFlow{to{stroke-dashoffset:-660}}
+.assemblyWord{display:inline-block;white-space:pre}
+.assemblyLetter{display:inline-block;animation:portfolioAssemble 850ms cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--letter)*24ms)}
+@keyframes portfolioAssemble{from{opacity:0;transform:translateY(.38em) translateX(.13em) rotate(5deg);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+.entranceReplay{border:0;background:transparent;color:var(--foreground);font:inherit;font-size:.72rem;opacity:.65;padding:4px 0;margin-top:8px;cursor:pointer}
+.entranceReplay:hover,.entranceReplay:focus-visible{opacity:1}
+.entranceReplay:focus-visible{outline:2px solid var(--primary);outline-offset:5px}
+@media(max-width:760px){.portfolioFlow{opacity:.19}.wordmark{font-size:clamp(1rem,4.5vw,1.5rem)}}
+@media(prefers-reduced-motion:reduce){.assemblyLetter,.portfolioFlow path{animation:none;opacity:1;transform:none;filter:none}.entranceReplay{display:none}}
+.sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:portfolioSectionReveal 650ms ease both;animation-delay:90ms}
+@keyframes portfolioSectionReveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:none}}
