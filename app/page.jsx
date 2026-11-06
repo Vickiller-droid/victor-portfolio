@@ -144,7 +144,7 @@ entry.target.classList.add("isVisible");
     const cursor = cursorRef.current;
     let frame = 0;
     const move = (event) => {
-      if (!media.matches || event.pointerType === 'touch') return;
+      if (!media.matches || event.pointerType === 'touch') { cursor.classList.remove('isVisible'); return; }
       cancelAnimationFrame(frame);
       const {clientX, clientY, target} = event;
       frame = requestAnimationFrame(() => {
