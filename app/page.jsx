@@ -4,6 +4,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import PortfolioEntrance, { FlowingLines } from "./PortfolioEntrance";
+import PortfolioNavigation from "./PortfolioNavigation";
 
 import {
 
@@ -195,19 +196,7 @@ entry.target.classList.add("isVisible");
 
         <a className="wordmark" href="#top" aria-label="Victoralabidaniel, home">victoralabidaniel<span>.</span></a>
 
-        <nav className="nav" aria-label="Main navigation">
-
-          <a href="#work">Work</a><a href="#toolkit">Toolkit</a><a href="#about">About</a><a href="#contact">Contact</a>
-
-        </nav>
-
-        <div className="themeToggle" role="group" aria-label="Color theme">
-
-          <button type="button" onClick={() => chooseTheme("light")} aria-pressed={theme === "light"} aria-label="Use light mode"><Sun size={16}/><span>Light</span></button>
-
-          <button type="button" onClick={() => chooseTheme("dark")} aria-pressed={theme === "dark"} aria-label="Use dark mode"><Moon size={16}/><span>Dark</span></button>
-
-        </div>
+        <PortfolioNavigation theme={theme} chooseTheme={chooseTheme}/>
 
       </header>
 
@@ -216,7 +205,7 @@ entry.target.classList.add("isVisible");
       <section className="hero" id="top">
         <FlowingLines/>
 
-        <div className="heroCopy revealOnScroll">
+        <div className="heroCopy">
 
           <p className="eyebrow"><span className="statusDot"/> SOFTWARE DEVELOPER · LEARNING BY BUILDING</p>
 

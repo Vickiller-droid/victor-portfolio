@@ -175,8 +175,8 @@ body.waitlistOpen{overflow:hidden}
 .portfolioFlow path{stroke:currentColor;stroke-width:.8;stroke-dasharray:90 240;animation:portfolioFlow 20s linear infinite}
 @keyframes portfolioFlow{to{stroke-dashoffset:-660}}
 .assemblyWord{display:inline-block;white-space:pre}
-.assemblyLetter{display:inline-block;animation:portfolioAssemble 850ms cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--letter)*24ms)}
-@keyframes portfolioAssemble{from{opacity:0;transform:translateY(.38em) translateX(.13em) rotate(5deg);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+.assemblyLetter{display:inline-block;animation:portfolioAssemble 560ms cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--letter)*17ms)}
+@keyframes portfolioAssemble{from{opacity:0;transform:translateY(.45em) translateX(.16em) rotate(7deg)}to{opacity:1;transform:none}}
 .entranceReplay{border:0;background:transparent;color:var(--foreground);font:inherit;font-size:.72rem;opacity:.65;padding:4px 0;margin-top:8px;cursor:pointer}
 .entranceReplay:hover,.entranceReplay:focus-visible{opacity:1}
 .entranceReplay:focus-visible{outline:2px solid var(--primary);outline-offset:5px}
@@ -185,3 +185,23 @@ body.waitlistOpen{overflow:hidden}
 .sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:portfolioSectionReveal 650ms ease both;animation-delay:90ms}
 @keyframes portfolioSectionReveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:none}}
+
+/* Navigation/motion review demo: original project presentation is intentionally unchanged. */
+.header{justify-content:space-between;position:relative;z-index:20}
+.portfolioNavControls{position:relative;display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.portfolioIconButton{display:grid;place-items:center;width:44px;height:44px;padding:0;background:var(--card);border:1px solid var(--border);border-radius:50%;color:var(--foreground);cursor:pointer;transition:background 160ms ease,color 160ms ease}
+.portfolioIconButton:hover{background:var(--surface);color:var(--primary)}
+.portfolioMenuTrigger[aria-expanded=true]{background:var(--primary);color:white;border-color:var(--primary)}
+.portfolioDropdown{position:absolute;right:0;top:calc(100% + 14px);width:min(310px,calc(100vw - 44px));padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 48px rgba(0,0,0,.13);animation:portfolioMenuIn 160ms ease both}
+.portfolioDropdown[hidden]{display:none}
+.portfolioDropdown a{display:flex;align-items:center;gap:15px;min-height:54px;padding:12px;text-decoration:none;color:var(--foreground);border-radius:6px;font-size:1rem}
+.portfolioDropdown a:hover,.portfolioDropdown a:focus-visible{background:var(--surface)}
+.portfolioDropdown a svg{margin-left:auto;color:var(--primary)}
+.portfolioNavIndex{font-size:.65rem;letter-spacing:.08em;color:var(--muted-foreground)}
+@keyframes portfolioMenuIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.portfolioFlow path{stroke-width:1.05}
+.portfolioFlow{opacity:.28}
+body.dark .portfolioFlow{opacity:.34}
+@media(max-width:760px){.header{flex-wrap:nowrap;min-height:78px;gap:10px}.wordmark{font-size:clamp(1rem,4.4vw,1.5rem)}.portfolioFlow{opacity:.28}.portfolioNavControls{gap:6px}}
+@media(max-width:350px){.portfolioIconButton{width:42px;height:42px}.wordmark{font-size:1rem}}
+@media(prefers-reduced-motion:reduce){.portfolioDropdown{animation:none}.portfolioIconButton{transition:none}}
