@@ -195,7 +195,7 @@ entry.target.classList.add("isVisible");
 
       <header className="header">
 
-        <a className="wordmark" href="#top" aria-label="Victoralabidaniel, home">victoralabidaniel<span>.</span></a>
+        <a className="wordmark" href="#top" aria-label="Victor Alabi, home">victoralabi<span>.</span></a>
 
         <PortfolioNavigation theme={theme} chooseTheme={chooseTheme}/>
 
@@ -381,7 +381,7 @@ entry.target.classList.add("isVisible");
 
         <div className="contactActions"><a className="primaryButton" href="mailto:alabivictordaniel@gmail.com"><Mail size={17}/> Email me <ArrowUpRight size={17}/></a><a className="contactGithub" href="https://github.com/vickiller-droid" target="_blank" rel="noreferrer"><Github size={17}/> GitHub <ArrowUpRight size={16}/></a></div>
 
-        <div className="footerBottom"><a className="wordmark" href="#top">victor<span>.</span></a><p>Made with intention. © {new Date().getFullYear()}</p><a href="#top" className="backTop">Back to top ↑</a></div>
+        <div className="footerBottom"><a className="wordmark" href="#top">victoralabi<span>.</span></a><p>Made with intention. © {new Date().getFullYear()}</p><a href="#top" className="backTop">Back to top ↑</a></div>
 
       </footer>
 

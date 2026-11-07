@@ -27,6 +27,6 @@ export default function PortfolioEntrance() {
 
 export function FlowingLines() {
   return <div className="portfolioTrails" aria-hidden="true">
-    <span><i/></span><span><i/></span><span><i/></span><span><i/></span>
+    <span/><span/><span/>
   </div>;
 }
