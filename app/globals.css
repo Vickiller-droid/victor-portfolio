@@ -225,12 +225,18 @@ body.waitlistOpen{overflow:hidden}
 /* Viewport decoration stays behind every section as the page scrolls. */
 .site{isolation:isolate}
 .header>.wordmark{align-self:flex-end;line-height:1;padding-bottom:1px}
-.portfolioTrails{position:fixed;top:0;left:0;width:100%;height:100vh;height:100svh;z-index:-1;overflow:hidden;pointer-events:none;color:var(--primary);opacity:.38}
-body.dark .portfolioTrails{opacity:.46}
-.portfolioTrails>span{position:absolute;width:clamp(48px,8vw,96px);height:1.5px;border-radius:999px;background:linear-gradient(90deg,transparent,currentColor);transform:rotate(-26deg)}
-.portfolioTrails>span:nth-child(1){left:-14px;top:22%}
-.portfolioTrails>span:nth-child(2){right:-12px;top:46%}
-.portfolioTrails>span:nth-child(3){left:-8px;top:77%}
+/* The frame stays fixed while the individual outlines drift in place. */
+.portfolioShapes{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;color:rgba(147,64,36,.41)}
+body.dark .portfolioShapes{color:rgba(234,148,113,.32)}
+.portfolioShapeField{position:absolute;inset:0}
+.portfolioShapeField>span{position:absolute;width:var(--size);aspect-ratio:1;border:1.5px solid currentColor;border-radius:var(--round,24%);transform:rotate(var(--angle));animation:shapeDrift var(--period) ease-in-out var(--delay) infinite alternate}
+.portfolioShapeField>span:nth-child(1){left:2%;top:19%;--size:clamp(24px,4vw,54px);--angle:-18deg;--turn:30deg;--dx:10px;--dy:18px;--period:7s;--delay:-2s}
+.portfolioShapeField>span:nth-child(2){right:5%;top:30%;--size:clamp(38px,6vw,82px);--round:50%;--angle:0deg;--turn:0deg;--dx:-13px;--dy:-19px;--period:9s;--delay:-4s}
+.portfolioShapeField>span:nth-child(3){left:6%;bottom:17%;--size:clamp(32px,5vw,68px);--round:50%;--angle:0deg;--turn:0deg;--dx:-12px;--dy:16px;--period:8s;--delay:-3s}
+.portfolioShapeField>span:nth-child(4){right:3%;bottom:11%;--size:clamp(22px,3.5vw,48px);--angle:24deg;--turn:-15deg;--dx:-14px;--dy:-18px;--period:7.5s;--delay:-5s}
+@keyframes shapeDrift{from{transform:translate3d(0,0,0) rotate(var(--angle))}to{transform:translate3d(var(--dx),var(--dy),0) rotate(var(--turn))}}
+@media(prefers-reduced-motion:reduce){.portfolioShapeField>span{animation:none}}
+
 
 .footerBottom{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
 .footerBottom>.wordmark{justify-self:start}

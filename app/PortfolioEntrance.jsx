@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function Words({ text, offset = 0 }) {
   let index = offset;
@@ -25,8 +25,47 @@ export default function PortfolioEntrance() {
   </>;
 }
 
-export function FlowingLines() {
-  return <div className="portfolioTrails" aria-hidden="true">
-    <span/><span/><span/>
+export function FloatingShapes() {
+  const field = useRef(null);
+
+  useEffect(() => {
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let lastY = window.scrollY;
+    let lastNudge = -Infinity;
+    let nudge;
+
+    function onScroll() {
+      const y = window.scrollY;
+      const delta = y - lastY;
+      lastY = y;
+      const now = performance.now();
+      if (!delta || motion.matches || now - lastNudge < 600 || !field.current?.animate) return;
+
+      lastNudge = now;
+      const offset = Math.sign(delta) * -7;
+      nudge?.cancel();
+      nudge = field.current.animate(
+        [{ transform: "translateY(0)" }, { transform: `translateY(${offset}px)`, offset: 0.28 }, { transform: "translateY(0)" }],
+        { duration: 580, easing: "ease-out" }
+      );
+    }
+
+    function onMotionChange() {
+      if (motion.matches) nudge?.cancel();
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    motion.addEventListener?.("change", onMotionChange);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      motion.removeEventListener?.("change", onMotionChange);
+      nudge?.cancel();
+    };
+  }, []);
+
+  return <div className="portfolioShapes" aria-hidden="true">
+    <div ref={field} className="portfolioShapeField">
+      <span/><span/><span/><span/>
+    </div>
   </div>;
 }

@@ -3,7 +3,7 @@
 
 
 import { useEffect, useState, useRef } from "react";
-import PortfolioEntrance, { FlowingLines } from "./PortfolioEntrance";
+import PortfolioEntrance, { FloatingShapes } from "./PortfolioEntrance";
 import PortfolioNavigation from "./PortfolioNavigation";
 
 import {
@@ -190,7 +190,7 @@ entry.target.classList.add("isVisible");
   return (
 
     <main className="site">
-      <FlowingLines/>
+      <FloatingShapes/>
       <div ref={cursorRef} className="cursorHalo" aria-hidden="true"><span/></div>
 
       <header className="header">
