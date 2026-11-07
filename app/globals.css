@@ -229,13 +229,36 @@ body.waitlistOpen{overflow:hidden}
 .portfolioShapes{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;color:rgba(147,64,36,.41)}
 body.dark .portfolioShapes{color:rgba(234,148,113,.32)}
 .portfolioShapeField{position:absolute;inset:0}
-.portfolioShapeField>span{position:absolute;width:var(--size);aspect-ratio:1;border:1.5px solid currentColor;border-radius:var(--round,24%);transform:rotate(var(--angle));animation:shapeDrift var(--period) ease-in-out var(--delay) infinite alternate}
-.portfolioShapeField>span:nth-child(1){left:2%;top:19%;--size:clamp(24px,4vw,54px);--angle:-18deg;--turn:30deg;--dx:10px;--dy:18px;--period:7s;--delay:-2s}
-.portfolioShapeField>span:nth-child(2){right:5%;top:30%;--size:clamp(38px,6vw,82px);--round:50%;--angle:0deg;--turn:0deg;--dx:-13px;--dy:-19px;--period:9s;--delay:-4s}
-.portfolioShapeField>span:nth-child(3){left:6%;bottom:17%;--size:clamp(32px,5vw,68px);--round:50%;--angle:0deg;--turn:0deg;--dx:-12px;--dy:16px;--period:8s;--delay:-3s}
-.portfolioShapeField>span:nth-child(4){right:3%;bottom:11%;--size:clamp(22px,3.5vw,48px);--angle:24deg;--turn:-15deg;--dx:-14px;--dy:-18px;--period:7.5s;--delay:-5s}
-@keyframes shapeDrift{from{transform:translate3d(0,0,0) rotate(var(--angle))}to{transform:translate3d(var(--dx),var(--dy),0) rotate(var(--turn))}}
-@media(prefers-reduced-motion:reduce){.portfolioShapeField>span{animation:none}}
+.portfolioOrbit{position:absolute;width:var(--size);aspect-ratio:1}
+.portfolioOrbit:nth-child(1){left:3%;top:18%;--size:clamp(24px,4vw,54px);--dx:16px;--dy:31px;--angle:-22deg;--period:8s;--delay:-2s}
+.portfolioOrbit:nth-child(2){right:5%;top:30%;--size:clamp(38px,6vw,82px);--dx:-22px;--dy:-28px;--period:10s;--delay:-5s}
+.portfolioOrbit:nth-child(3){left:5%;bottom:16%;--size:clamp(32px,5vw,68px);--dx:18px;--dy:-33px;--period:11s;--delay:-4s}
+.portfolioOrbit:nth-child(4){right:3%;bottom:11%;--size:clamp(22px,3.5vw,48px);--dx:-25px;--dy:28px;--angle:24deg;--period:9s;--delay:-6s}
+.portfolioOrbit:nth-child(5){right:10%;top:56%;--size:clamp(16px,2.5vw,32px);--dx:17px;--dy:-28px;--angle:-12deg;--period:12s;--delay:-5s;opacity:.72}
+.portfolioOrbit>span{position:absolute;inset:0;animation:shapeArc var(--period) ease-in-out var(--delay) infinite alternate}
+.orbitLead>i,.orbitLead>svg{display:block;width:100%;height:100%;transform:rotate(var(--angle,0deg));animation:shapeSpin 22s linear var(--delay) infinite}
+.orbitLead>i{border:1.5px solid currentColor;border-radius:24%}
+.orbitLead>svg{fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round}
+[data-shape=ring] .orbitLead>i{border-radius:50%;animation:shapeBreathe var(--period) ease-in-out var(--delay) infinite alternate}
+.portfolioOrbit:nth-child(3) .orbitLead>i{filter:blur(.7px)}
+.portfolioOrbit>.orbitTrail{display:grid;place-items:center;animation-delay:calc(var(--delay) + .85s)}
+.portfolioOrbit>.orbitTrailFar{animation-delay:calc(var(--delay) + 1.7s)}
+.orbitTrail::before{content:"";width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.55}
+.orbitTrailFar::before{width:2px;height:2px;opacity:.34}
+.portfolioDust{position:absolute;inset:0}
+.portfolioDust i{position:absolute;left:var(--x);top:var(--y);width:3px;height:3px;border-radius:50%;background:currentColor;animation:dustDrift 8s ease-in-out var(--phase) infinite alternate}
+.portfolioDust i:nth-child(1){--x:7%;--y:29%;--phase:-2s}
+.portfolioDust i:nth-child(2){--x:13%;--y:68%;--phase:-4s}
+.portfolioDust i:nth-child(3){--x:91%;--y:18%;--phase:-3s}
+.portfolioDust i:nth-child(4){--x:94%;--y:65%;--phase:-6s}
+.portfolioDust i:nth-child(5){--x:10%;--y:91%;--phase:-1s}
+.portfolioDust i:nth-child(6){--x:88%;--y:92%;--phase:-5s}
+@keyframes shapeArc{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(calc(var(--dx) * .8),calc(var(--dy) * .22),0)}100%{transform:translate3d(var(--dx),var(--dy),0)}}
+@keyframes shapeSpin{to{transform:rotate(calc(var(--angle,0deg) + 360deg))}}
+@keyframes shapeBreathe{from{transform:scale(.9);opacity:.88}to{transform:scale(1.13);opacity:.6}}
+@keyframes dustDrift{from{transform:translate3d(0,0,0);opacity:.28}to{transform:translate3d(6px,-12px,0);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.portfolioShapeField *{animation:none!important}.portfolioShapeField .orbitTrail,.portfolioDust{display:none}}
+
 
 
 .footerBottom{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}

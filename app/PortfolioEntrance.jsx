@@ -65,7 +65,16 @@ export function FloatingShapes() {
 
   return <div className="portfolioShapes" aria-hidden="true">
     <div ref={field} className="portfolioShapeField">
-      <span/><span/><span/><span/>
+      {["square", "ring", "ring", "square", "triangle"].map((kind, index) => (
+        <div className="portfolioOrbit" key={index} data-shape={kind}>
+          <span className="orbitTrail orbitTrailFar"/>
+          <span className="orbitTrail"/>
+          <span className="orbitLead">
+            {kind === "triangle" ? <svg viewBox="0 0 32 32" focusable="false"><path d="M16 4 29 27H3Z"/></svg> : <i/>}
+          </span>
+        </div>
+      ))}
+      <div className="portfolioDust"><i/><i/><i/><i/><i/><i/></div>
     </div>
   </div>;
 }
