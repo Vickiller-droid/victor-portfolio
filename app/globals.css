@@ -225,13 +225,22 @@ body.waitlistOpen{overflow:hidden}
 /* Viewport decoration stays behind every section as the page scrolls. */
 .site{isolation:isolate}
 .header>.wordmark{align-self:flex-end;line-height:1;padding-bottom:1px}
-.portfolioTrails{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;color:var(--primary);opacity:.36}
-body.dark .portfolioTrails{opacity:.44}
+.portfolioTrails{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;color:var(--primary);opacity:.58}
+body.dark .portfolioTrails{opacity:.66}
 .portfolioTrails>span{position:absolute;left:var(--x);top:var(--y);transform:rotate(var(--angle))}
 .portfolioTrails>span:nth-child(1){--x:8%;--y:23%;--angle:29deg;--speed:17s;--delay:-6s}
 .portfolioTrails>span:nth-child(2){--x:82%;--y:38%;--angle:147deg;--speed:21s;--delay:-13s}
 .portfolioTrails>span:nth-child(3){--x:24%;--y:72%;--angle:-23deg;--speed:23s;--delay:-9s}
 .portfolioTrails>span:nth-child(4){--x:91%;--y:83%;--angle:201deg;--speed:19s;--delay:-11s}
-.portfolioTrails i{display:block;width:clamp(45px,10vw,110px);height:1.25px;border-radius:999px;background:linear-gradient(90deg,transparent,currentColor);animation:portfolioTrail var(--speed) var(--delay) linear infinite}
-@keyframes portfolioTrail{0%{opacity:0;transform:translateX(-26vw)}20%,70%{opacity:1}100%{opacity:0;transform:translateX(36vw)}}
-@media(prefers-reduced-motion:reduce){.portfolioTrails{display:none}}
+.portfolioTrails i{display:block;width:clamp(76px,13vw,150px);height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,currentColor);animation:portfolioTrail var(--speed) var(--delay) linear infinite}
+@keyframes portfolioTrail{0%{opacity:0;transform:translateX(-26vw)}12%,86%{opacity:1}100%{opacity:0;transform:translateX(36vw)}}
+@media(prefers-reduced-motion:reduce){.portfolioTrails i{animation:none;transform:none}}
+
+.footerBottom{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.footerBottom>.wordmark{justify-self:start}
+.footerBottom>.backTop{justify-self:end}
+.footerBottom>p{margin:0;text-align:center}
+@media(max-width:760px){
+  .footerBottom{grid-template-columns:1fr 1fr}
+  .footerBottom>p{grid-column:1/-1}
+}
