@@ -190,6 +190,7 @@ entry.target.classList.add("isVisible");
   return (
 
     <main className="site">
+      <FlowingLines/>
       <div ref={cursorRef} className="cursorHalo" aria-hidden="true"><span/></div>
 
       <header className="header">
@@ -203,7 +204,6 @@ entry.target.classList.add("isVisible");
 
 
       <section className="hero" id="top">
-        <FlowingLines/>
 
         <div className="heroCopy">
 

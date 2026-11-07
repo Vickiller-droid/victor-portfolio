@@ -26,7 +26,7 @@ export default function PortfolioEntrance() {
 }
 
 export function FlowingLines() {
-  return <svg className="portfolioFlow" viewBox="0 0 1000 700" fill="none" aria-hidden="true" focusable="false" preserveAspectRatio="none">
-    {Array.from({ length: 7 }, (_, i) => <path vectorEffect="non-scaling-stroke" key={i} d={`M ${-180 + i * 42} -100 C ${170 + i * 30} 30, ${210 + i * 25} 440, 500 610 C ${650 + i * 20} 440, ${710 + i * 35} 80, ${1120 + i * 35} -70`} style={{ animationDelay: `${i * -2.2}s` }}/>) }
-  </svg>;
+  return <div className="portfolioTrails" aria-hidden="true">
+    <span><i/></span><span><i/></span><span><i/></span><span><i/></span>
+  </div>;
 }

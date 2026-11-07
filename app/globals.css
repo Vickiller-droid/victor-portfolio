@@ -171,17 +171,17 @@ body.waitlistOpen{overflow:hidden}
 
 /* Approved portfolio motion: scoped so project mockups retain their own transforms. */
 .hero{position:relative;isolation:isolate}
-.portfolioFlow{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:.24;overflow:hidden;color:var(--primary)}
-.portfolioFlow path{stroke:currentColor;stroke-width:.8;stroke-dasharray:90 240;animation:portfolioFlow 20s linear infinite}
-@keyframes portfolioFlow{to{stroke-dashoffset:-660}}
+
+
+
 .assemblyWord{display:inline-block;white-space:pre}
 .assemblyLetter{display:inline-block;animation:portfolioAssemble 800ms cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--letter)*28ms)}
 @keyframes portfolioAssemble{from{opacity:0;transform:translateY(.45em) translateX(.16em) rotate(7deg)}to{opacity:1;transform:none}}
 .entranceReplay{border:0;background:transparent;color:var(--foreground);font:inherit;font-size:.72rem;opacity:.65;padding:4px 0;margin-top:8px;cursor:pointer}
 .entranceReplay:hover,.entranceReplay:focus-visible{opacity:1}
 .entranceReplay:focus-visible{outline:2px solid var(--primary);outline-offset:5px}
-@media(max-width:760px){.portfolioFlow{opacity:.19}.wordmark{font-size:clamp(1rem,4.5vw,1.5rem)}}
-@media(prefers-reduced-motion:reduce){.assemblyLetter,.portfolioFlow path{animation:none;opacity:1;transform:none;filter:none}.entranceReplay{display:none}}
+@media(max-width:760px){.wordmark{font-size:clamp(1rem,4.5vw,1.5rem)}}
+@media(prefers-reduced-motion:reduce){.assemblyLetter{animation:none;opacity:1;transform:none;filter:none}.entranceReplay{display:none}}
 .sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:portfolioSectionReveal 650ms ease both;animation-delay:90ms}
 @keyframes portfolioSectionReveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.sectionHeading.isVisible h2,.aboutLead.isVisible h2,.footer .isVisible h2{animation:none}}
@@ -199,17 +199,17 @@ body.waitlistOpen{overflow:hidden}
 .portfolioDropdown a svg{margin-left:auto;color:var(--primary)}
 .portfolioNavIndex{font-size:.65rem;letter-spacing:.08em;color:var(--muted-foreground)}
 @keyframes portfolioMenuIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.portfolioFlow path{stroke-width:1.05}
-.portfolioFlow{opacity:.28}
-body.dark .portfolioFlow{opacity:.34}
-@media(max-width:760px){.header{flex-wrap:nowrap;min-height:78px;gap:10px}.wordmark{font-size:clamp(1rem,4.4vw,1.5rem)}.portfolioFlow{opacity:.28}.portfolioNavControls{gap:6px}}
+
+
+
+@media(max-width:760px){.header{flex-wrap:nowrap;min-height:78px;gap:10px}.wordmark{font-size:clamp(1rem,4.4vw,1.5rem)}.portfolioNavControls{gap:6px}}
 @media(max-width:350px){.portfolioIconButton{width:42px;height:42px}.wordmark{font-size:1rem}}
 @media(prefers-reduced-motion:reduce){.portfolioDropdown{animation:none}.portfolioIconButton{transition:none}}
 
 /* Final review: restrained touch feedback and legible decorative motion. */
-.portfolioFlow{opacity:.44}
-body.dark .portfolioFlow{opacity:.52}
-.portfolioFlow path{stroke-width:1.35}
+
+
+
 .heroCopy>.intro{animation:portfolioIntro 550ms ease both;animation-delay:950ms}
 @keyframes portfolioIntro{from{opacity:.25;transform:translateY(8px)}to{opacity:1;transform:none}}
 .portfolioNavControls button,.portfolioDropdown a,.entranceReplay{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -219,5 +219,19 @@ body.dark .portfolioFlow{opacity:.52}
 .portfolioIconButton:focus:not(:focus-visible){outline:none}
 .portfolioIconButton:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
 @media(hover:none),(pointer:coarse){.cursorHalo{display:none!important}}
-@media(max-width:760px){.portfolioFlow{opacity:.44}}
+
 @media(prefers-reduced-motion:reduce){.heroCopy>.intro{animation:none;opacity:1;transform:none}}
+
+/* Viewport decoration stays behind every section as the page scrolls. */
+.site{isolation:isolate}
+.header>.wordmark{align-self:flex-end;line-height:1;padding-bottom:1px}
+.portfolioTrails{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;color:var(--primary);opacity:.36}
+body.dark .portfolioTrails{opacity:.44}
+.portfolioTrails>span{position:absolute;left:var(--x);top:var(--y);transform:rotate(var(--angle))}
+.portfolioTrails>span:nth-child(1){--x:8%;--y:23%;--angle:29deg;--speed:17s;--delay:-6s}
+.portfolioTrails>span:nth-child(2){--x:82%;--y:38%;--angle:147deg;--speed:21s;--delay:-13s}
+.portfolioTrails>span:nth-child(3){--x:24%;--y:72%;--angle:-23deg;--speed:23s;--delay:-9s}
+.portfolioTrails>span:nth-child(4){--x:91%;--y:83%;--angle:201deg;--speed:19s;--delay:-11s}
+.portfolioTrails i{display:block;width:clamp(45px,10vw,110px);height:1.25px;border-radius:999px;background:linear-gradient(90deg,transparent,currentColor);animation:portfolioTrail var(--speed) var(--delay) linear infinite}
+@keyframes portfolioTrail{0%{opacity:0;transform:translateX(-26vw)}20%,70%{opacity:1}100%{opacity:0;transform:translateX(36vw)}}
+@media(prefers-reduced-motion:reduce){.portfolioTrails{display:none}}
