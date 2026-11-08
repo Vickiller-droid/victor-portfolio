@@ -76,6 +76,7 @@ export function FloatingShapes() {
     let x = 0, y = 0, targetX = 0, targetY = 0;
     let heldSince = null;
     let heldX = 0, heldY = 0;
+    let peakTilt = 0, tiltRatio = 0, retreatAt = null;
     let flow = 0;
     let paths = [];
     const orbits = [...layer.querySelectorAll(".portfolioOrbit")];
@@ -101,15 +102,16 @@ export function FloatingShapes() {
       frame = 0;
       x = y = targetX = targetY = heldX = heldY = 0;
       heldSince = null;
-      flow = 0;
+      flow = peakTilt = tiltRatio = 0;
+      retreatAt = null;
       paths = [];
       orbits.forEach(orbit => orbit.style.removeProperty("transform"));
       layer.style.removeProperty("transform");
     }
 
     function draw(now) {
-      const progress = heldSince === null ? 0 : Math.min(1, Math.max(0, now - heldSince - 600) / 3800);
-      const targetFlow = progress * progress * (3 - 2 * progress);
+      const progress = heldSince === null ? 0 : Math.min(1, Math.max(0, (retreatAt ?? now) - heldSince - 600) / 3800);
+      const targetFlow = progress * progress * (3 - 2 * progress) * tiltRatio;
       flow += (targetFlow - flow) * .12;
       x += (targetX - x) * .12;
       y += (targetY - y) * .12;
@@ -119,7 +121,7 @@ export function FloatingShapes() {
       paths.forEach(([dx, dy], index) => {
         orbits[index].style.transform = `translate3d(${(dx * flow).toFixed(2)}px,${(dy * flow).toFixed(2)}px,0)`;
       });
-      frame = moving || (heldSince !== null && progress < 1) ? requestAnimationFrame(draw) : 0;
+      frame = moving || (heldSince !== null && retreatAt === null && progress < 1) ? requestAnimationFrame(draw) : 0;
     }
 
     function onTilt({ beta, gamma }) {
@@ -133,23 +135,39 @@ export function FloatingShapes() {
       const pitch = ((beta - origin.beta + 540) % 360) - 180;
       const roll = gamma - origin.gamma;
       const shift = value => Math.sign(value) * Math.min(9, Math.max(0, Math.abs(value) - 1.5) * .45);
-      targetX = shift(roll * Math.cos(angle) + pitch * Math.sin(angle));
-      targetY = shift(pitch * Math.cos(angle) - roll * Math.sin(angle));
-      const magnitude = Math.hypot(targetX, targetY);
-      if (magnitude >= (heldSince === null ? 2.5 : 1.5)) {
-        const directionX = targetX / magnitude;
-        const directionY = targetY / magnitude;
-        if (heldSince === null || directionX * heldX + directionY * heldY < 5) {
-          heldSince = performance.now();
-          heldX = directionX * 8;
-          heldY = directionY * 8;
-          aim(directionX, directionY);
-        }
-      } else {
-        heldSince = null;
-        heldX = heldY = 0;
+      const tiltX = roll * Math.cos(angle) + pitch * Math.sin(angle);
+      const tiltY = pitch * Math.cos(angle) - roll * Math.sin(angle);
+      targetX = shift(tiltX);
+      targetY = shift(tiltY);
+      const magnitude = Math.hypot(tiltX, tiltY);
+      const now = performance.now();
+      const projection = tiltX * heldX + tiltY * heldY;
+
+      if (magnitude >= 7 && (heldSince === null || projection < magnitude * .6)) {
+        heldSince = now;
+        retreatAt = null;
+        heldX = tiltX / magnitude;
+        heldY = tiltY / magnitude;
+        peakTilt = magnitude;
+        aim(heldX, heldY);
       }
-      if (!frame && (x !== targetX || y !== targetY || (heldSince === null ? flow > 0 : flow < 1))) frame = requestAnimationFrame(draw);
+
+      if (heldSince !== null) {
+        const alongPath = Math.max(0, tiltX * heldX + tiltY * heldY);
+        peakTilt = Math.max(peakTilt, alongPath);
+        tiltRatio = Math.max(0, (alongPath - 1.5) / (peakTilt - 1.5));
+        if (peakTilt - alongPath > 1) {
+          retreatAt ??= now;
+        } else if (retreatAt !== null) {
+          heldSince += now - retreatAt;
+          retreatAt = null;
+        }
+        if (tiltRatio === 0) {
+          heldSince = retreatAt = null;
+          heldX = heldY = peakTilt = 0;
+        }
+      }
+      if (!frame) frame = requestAnimationFrame(draw);
     }
 
     window.addEventListener("deviceorientation", onTilt, { passive: true });
