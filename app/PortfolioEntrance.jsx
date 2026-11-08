@@ -27,6 +27,7 @@ export default function PortfolioEntrance() {
 
 export function FloatingShapes() {
   const field = useRef(null);
+  const tilt = useRef(null);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -63,7 +64,65 @@ export function FloatingShapes() {
     };
   }, []);
 
+  useEffect(() => {
+    const layer = tilt.current;
+    const Orientation = window.DeviceOrientationEvent;
+    if (!layer || !Orientation || typeof Orientation.requestPermission === "function") return;
+
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const screenOrientation = window.screen.orientation;
+    let origin;
+    let frame = 0;
+    let x = 0, y = 0, targetX = 0, targetY = 0;
+
+    function reset() {
+      origin = undefined;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      x = y = targetX = targetY = 0;
+      layer.style.removeProperty("transform");
+    }
+
+    function draw() {
+      x += (targetX - x) * .16;
+      y += (targetY - y) * .16;
+      const moving = Math.abs(targetX - x) + Math.abs(targetY - y) > .06;
+      if (!moving) { x = targetX; y = targetY; }
+      layer.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`;
+      frame = moving ? requestAnimationFrame(draw) : 0;
+    }
+
+    function onTilt({ beta, gamma }) {
+      if (preference.matches || document.hidden || !Number.isFinite(beta) || !Number.isFinite(gamma)) return;
+      const angle = (screenOrientation?.angle ?? window.orientation ?? 0) * Math.PI / 180;
+      if (!origin || origin.angle !== angle) {
+        reset();
+        origin = { beta, gamma, angle };
+        return;
+      }
+      const pitch = ((beta - origin.beta + 540) % 360) - 180;
+      const roll = gamma - origin.gamma;
+      const shift = value => Math.sign(value) * Math.min(9, Math.max(0, Math.abs(value) - 1.5) * .45);
+      targetX = shift(roll * Math.cos(angle) + pitch * Math.sin(angle));
+      targetY = shift(pitch * Math.cos(angle) - roll * Math.sin(angle));
+      if (!frame && (x !== targetX || y !== targetY)) frame = requestAnimationFrame(draw);
+    }
+
+    window.addEventListener("deviceorientation", onTilt, { passive: true });
+    preference.addEventListener?.("change", reset);
+    screenOrientation?.addEventListener?.("change", reset);
+    document.addEventListener("visibilitychange", reset);
+    return () => {
+      window.removeEventListener("deviceorientation", onTilt);
+      preference.removeEventListener?.("change", reset);
+      screenOrientation?.removeEventListener?.("change", reset);
+      document.removeEventListener("visibilitychange", reset);
+      reset();
+    };
+  }, []);
+
   return <div className="portfolioShapes" aria-hidden="true">
+    <div ref={tilt} style={{ position: "absolute", inset: 0 }}>
     <div ref={field} className="portfolioShapeField">
       {["square", "ring", "ring", "square", "triangle"].map((kind, index) => (
         <div className="portfolioOrbit" key={index} data-shape={kind}>
@@ -75,6 +134,7 @@ export function FloatingShapes() {
         </div>
       ))}
       <div className="portfolioDust"><i/><i/><i/><i/><i/><i/></div>
+    </div>
     </div>
   </div>;
 }
