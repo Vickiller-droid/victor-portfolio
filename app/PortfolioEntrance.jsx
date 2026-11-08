@@ -77,6 +77,7 @@ export function FloatingShapes() {
     const positions = orbits.map(() => [0, 0]);
     let directionX = 0, directionY = 0, strength = 0;
     let heldSince = 0, anchorStrength = 0, anchorX = 0, anchorY = 0;
+    let lastDraw = null;
     let paths = [];
 
     function aim(dx, dy) {
@@ -98,6 +99,7 @@ export function FloatingShapes() {
       cancelAnimationFrame(frame);
       frame = 0;
       directionX = directionY = strength = anchorStrength = anchorX = anchorY = heldSince = 0;
+      lastDraw = null;
       paths = [];
       orbits.forEach((orbit, i) => {
         positions[i] = [0, 0];
@@ -106,17 +108,21 @@ export function FloatingShapes() {
     }
 
     function draw(now) {
+      const blend = 1 - Math.exp(-Math.min(50, now - (lastDraw ?? now - 16)) / 420);
+      lastDraw = now;
       const canFlow = strength >= .18 && Math.abs(strength - anchorStrength) < .12;
-      const hold = canFlow ? Math.min(1, Math.max(0, now - heldSince - 500) / 2600) : 0;
-      const travel = strength + (1 - strength) * hold;
+      const hold = canFlow ? Math.min(1, Math.max(0, now - heldSince - 900) / 5200) : 0;
+      const nudge = strength * .08;
+      const drift = hold * hold * (3 - 2 * hold);
+      const travel = nudge + (1 - nudge) * drift;
       let moving = false;
       orbits.forEach((orbit, i) => {
         const [dx, dy] = paths[i] ?? [0, 0];
         const targetX = dx * travel, targetY = dy * travel;
         const position = positions[i];
         const unsettled = Math.abs(targetX - position[0]) + Math.abs(targetY - position[1]) > .15;
-        position[0] = unsettled ? position[0] + (targetX - position[0]) * .24 : targetX;
-        position[1] = unsettled ? position[1] + (targetY - position[1]) * .24 : targetY;
+        position[0] = unsettled ? position[0] + (targetX - position[0]) * blend : targetX;
+        position[1] = unsettled ? position[1] + (targetY - position[1]) * blend : targetY;
         orbit.style.transform = `translate3d(${position[0].toFixed(2)}px,${position[1].toFixed(2)}px,0)`;
         moving ||= unsettled;
       });
