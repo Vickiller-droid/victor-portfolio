@@ -74,22 +74,28 @@ export function FloatingShapes() {
     let origin;
     let frame = 0;
     let x = 0, y = 0, targetX = 0, targetY = 0;
+    let heldSince = null;
+    let heldX = 0, heldY = 0;
 
     function reset() {
       origin = undefined;
       cancelAnimationFrame(frame);
       frame = 0;
-      x = y = targetX = targetY = 0;
+      x = y = targetX = targetY = heldX = heldY = 0;
+      heldSince = null;
       layer.style.removeProperty("transform");
     }
 
-    function draw() {
-      x += (targetX - x) * .16;
-      y += (targetY - y) * .16;
-      const moving = Math.abs(targetX - x) + Math.abs(targetY - y) > .06;
-      if (!moving) { x = targetX; y = targetY; }
+    function draw(now) {
+      const drift = heldSince === null ? 0 : Math.min(3, Math.max(0, now - heldSince - 650) / 2200);
+      const nextX = targetX + heldX * drift;
+      const nextY = targetY + heldY * drift;
+      x += (nextX - x) * .12;
+      y += (nextY - y) * .12;
+      const moving = Math.abs(nextX - x) + Math.abs(nextY - y) > .06;
+      if (!moving) { x = nextX; y = nextY; }
       layer.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`;
-      frame = moving ? requestAnimationFrame(draw) : 0;
+      frame = moving || (heldSince !== null && drift < 3) ? requestAnimationFrame(draw) : 0;
     }
 
     function onTilt({ beta, gamma }) {
@@ -105,7 +111,20 @@ export function FloatingShapes() {
       const shift = value => Math.sign(value) * Math.min(9, Math.max(0, Math.abs(value) - 1.5) * .45);
       targetX = shift(roll * Math.cos(angle) + pitch * Math.sin(angle));
       targetY = shift(pitch * Math.cos(angle) - roll * Math.sin(angle));
-      if (!frame && (x !== targetX || y !== targetY)) frame = requestAnimationFrame(draw);
+      const magnitude = Math.hypot(targetX, targetY);
+      if (magnitude >= (heldSince === null ? 2.5 : 1.5)) {
+        const directionX = targetX / magnitude;
+        const directionY = targetY / magnitude;
+        if (heldSince === null || directionX * heldX + directionY * heldY < 5) {
+          heldSince = performance.now();
+          heldX = directionX * 8;
+          heldY = directionY * 8;
+        }
+      } else {
+        heldSince = null;
+        heldX = heldY = 0;
+      }
+      if (!frame && (heldSince !== null ? performance.now() - heldSince < 7250 || Math.abs(x - targetX - heldX * 3) + Math.abs(y - targetY - heldY * 3) > .06 : x !== targetX || y !== targetY)) frame = requestAnimationFrame(draw);
     }
 
     window.addEventListener("deviceorientation", onTilt, { passive: true });
