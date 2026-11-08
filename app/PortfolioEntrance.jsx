@@ -73,21 +73,18 @@ export function FloatingShapes() {
     const screenOrientation = window.screen.orientation;
     let origin;
     let frame = 0;
-    let x = 0, y = 0, targetX = 0, targetY = 0;
-    let heldSince = null;
-    let heldX = 0, heldY = 0;
-    let peakTilt = 0, tiltRatio = 0, retreatAt = null;
-    let flow = 0;
-    let paths = [];
     const orbits = [...layer.querySelectorAll(".portfolioOrbit")];
+    const positions = orbits.map(() => [0, 0]);
+    let directionX = 0, directionY = 0, strength = 0;
+    let heldSince = 0, anchorStrength = 0, anchorX = 0, anchorY = 0;
+    let paths = [];
 
     function aim(dx, dy) {
       const { width, height } = layer.getBoundingClientRect();
       paths = orbits.map((orbit, index) => {
-        const left = orbit.offsetLeft, top = orbit.offsetTop;
         const inset = 22 + index * 4;
-        const edgeX = dx > 0 ? width - left - orbit.offsetWidth - inset : left - inset;
-        const edgeY = dy > 0 ? height - top - orbit.offsetHeight - inset : top - inset;
+        const edgeX = dx > 0 ? width - orbit.offsetLeft - orbit.offsetWidth - inset : orbit.offsetLeft - inset;
+        const edgeY = dy > 0 ? height - orbit.offsetTop - orbit.offsetHeight - inset : orbit.offsetTop - inset;
         const distance = Math.max(0, Math.min(
           Math.abs(dx) > .01 ? edgeX / Math.abs(dx) : Infinity,
           Math.abs(dy) > .01 ? edgeY / Math.abs(dy) : Infinity
@@ -100,28 +97,30 @@ export function FloatingShapes() {
       origin = undefined;
       cancelAnimationFrame(frame);
       frame = 0;
-      x = y = targetX = targetY = heldX = heldY = 0;
-      heldSince = null;
-      flow = peakTilt = tiltRatio = 0;
-      retreatAt = null;
+      directionX = directionY = strength = anchorStrength = anchorX = anchorY = heldSince = 0;
       paths = [];
-      orbits.forEach(orbit => orbit.style.removeProperty("transform"));
-      layer.style.removeProperty("transform");
+      orbits.forEach((orbit, i) => {
+        positions[i] = [0, 0];
+        orbit.style.removeProperty("transform");
+      });
     }
 
     function draw(now) {
-      const progress = heldSince === null ? 0 : Math.min(1, Math.max(0, (retreatAt ?? now) - heldSince - 600) / 3800);
-      const targetFlow = progress * progress * (3 - 2 * progress) * tiltRatio;
-      flow += (targetFlow - flow) * .12;
-      x += (targetX - x) * .12;
-      y += (targetY - y) * .12;
-      const moving = Math.abs(targetX - x) + Math.abs(targetY - y) > .06 || Math.abs(targetFlow - flow) > .0002;
-      if (!moving) { x = targetX; y = targetY; flow = targetFlow; }
-      layer.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`;
-      paths.forEach(([dx, dy], index) => {
-        orbits[index].style.transform = `translate3d(${(dx * flow).toFixed(2)}px,${(dy * flow).toFixed(2)}px,0)`;
+      const canFlow = strength >= .18 && Math.abs(strength - anchorStrength) < .12;
+      const hold = canFlow ? Math.min(1, Math.max(0, now - heldSince - 500) / 2600) : 0;
+      const travel = strength + (1 - strength) * hold;
+      let moving = false;
+      orbits.forEach((orbit, i) => {
+        const [dx, dy] = paths[i] ?? [0, 0];
+        const targetX = dx * travel, targetY = dy * travel;
+        const position = positions[i];
+        const unsettled = Math.abs(targetX - position[0]) + Math.abs(targetY - position[1]) > .15;
+        position[0] = unsettled ? position[0] + (targetX - position[0]) * .24 : targetX;
+        position[1] = unsettled ? position[1] + (targetY - position[1]) * .24 : targetY;
+        orbit.style.transform = `translate3d(${position[0].toFixed(2)}px,${position[1].toFixed(2)}px,0)`;
+        moving ||= unsettled;
       });
-      frame = moving || (heldSince !== null && retreatAt === null && progress < 1) ? requestAnimationFrame(draw) : 0;
+      frame = moving || (canFlow && hold < 1) ? requestAnimationFrame(draw) : 0;
     }
 
     function onTilt({ beta, gamma }) {
@@ -134,39 +133,19 @@ export function FloatingShapes() {
       }
       const pitch = ((beta - origin.beta + 540) % 360) - 180;
       const roll = gamma - origin.gamma;
-      const shift = value => Math.sign(value) * Math.min(9, Math.max(0, Math.abs(value) - 1.5) * .45);
       const tiltX = roll * Math.cos(angle) + pitch * Math.sin(angle);
       const tiltY = pitch * Math.cos(angle) - roll * Math.sin(angle);
-      targetX = shift(tiltX);
-      targetY = shift(tiltY);
       const magnitude = Math.hypot(tiltX, tiltY);
-      const now = performance.now();
-      const projection = tiltX * heldX + tiltY * heldY;
-
-      if (magnitude >= 7 && (heldSince === null || projection < magnitude * .6)) {
-        heldSince = now;
-        retreatAt = null;
-        heldX = tiltX / magnitude;
-        heldY = tiltY / magnitude;
-        peakTilt = magnitude;
-        aim(heldX, heldY);
+      strength = Math.min(1, Math.max(0, (magnitude - 2) / 18));
+      directionX = strength ? tiltX / magnitude : 0;
+      directionY = strength ? tiltY / magnitude : 0;
+      if (!strength || Math.abs(strength - anchorStrength) >= .12 || directionX * anchorX + directionY * anchorY < .9) {
+        heldSince = performance.now();
+        anchorStrength = strength;
+        anchorX = directionX;
+        anchorY = directionY;
       }
-
-      if (heldSince !== null) {
-        const alongPath = Math.max(0, tiltX * heldX + tiltY * heldY);
-        peakTilt = Math.max(peakTilt, alongPath);
-        tiltRatio = Math.max(0, (alongPath - 1.5) / (peakTilt - 1.5));
-        if (peakTilt - alongPath > 1) {
-          retreatAt ??= now;
-        } else if (retreatAt !== null) {
-          heldSince += now - retreatAt;
-          retreatAt = null;
-        }
-        if (tiltRatio === 0) {
-          heldSince = retreatAt = null;
-          heldX = heldY = peakTilt = 0;
-        }
-      }
+      if (strength) aim(directionX, directionY);
       if (!frame) frame = requestAnimationFrame(draw);
     }
 
