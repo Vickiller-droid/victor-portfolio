@@ -1,0 +1,63 @@
+.page {
+  --paper: #f6f3ee;
+  --ink: #292622;
+  --muted: #6d665e;
+  --line: #dcd3c8;
+  --accent: #a4472c;
+  --button: #a4472c;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 clamp(20px, 7vw, 112px);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-family-base, sans-serif);
+}
+.page[data-theme="dark"] {
+  --paper: #211f1c;
+  --ink: #f4efe8;
+  --muted: #b7ada1;
+  --line: #494139;
+  --accent: #ec9c7c;
+}
+.header { padding: 22px 0; border-bottom: 1px solid var(--line); }
+.header a { color: inherit; text-decoration: none; font-weight: 700; letter-spacing: -.045em; }
+.header span, .label { color: var(--accent); }
+.content { margin: auto; padding: clamp(30px, 7vh, 76px) 0; text-align: center; }
+.digits {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: .045em;
+  font-weight: 700;
+  font-size: clamp(92px, 24vw, 245px);
+  line-height: .95;
+  letter-spacing: -.07em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.zero { position: relative; }
+.dot {
+  position: absolute;
+  width: .085em;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  left: 52%;
+  top: 63%;
+  animation: wander 1.05s cubic-bezier(.24,.7,.26,1) both;
+}
+@keyframes wander {
+  0% { transform: translate(-145%, -245%); }
+  55% { transform: translate(30%, -35%); }
+  78% { transform: translate(16%, 8%); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.label { margin: 20px 0 8px; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.content h1 { margin: 0; font-family: Newsreader, Georgia, serif; font-size: clamp(2rem, 6vw, 4rem); line-height: 1.05; }
+.description { margin: 12px auto 22px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 18px; }
+.actions a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--ink); text-underline-offset: 4px; }
+.actions .home { padding: 0 16px; background: var(--button); color: #fff; border-radius: 6px; text-decoration: none; }
+.page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
