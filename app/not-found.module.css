@@ -45,12 +45,12 @@
   background: var(--accent);
   left: 52%;
   top: 63%;
-  animation: wander 1.05s cubic-bezier(.24,.7,.26,1) both;
+  animation: wander 1.6s ease-in-out .65s both;
 }
 @keyframes wander {
-  0% { transform: translate(-145%, -245%); }
-  55% { transform: translate(30%, -35%); }
-  78% { transform: translate(16%, 8%); }
+  0% { transform: translate(-175%, -210%); }
+  42% { transform: translate(35%, -110%); }
+  72% { transform: translate(-85%, 0); }
   100% { transform: translate(0, 0); }
 }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }

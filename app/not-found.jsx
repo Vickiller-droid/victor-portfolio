@@ -21,7 +21,7 @@ export default function NotFound() {
         </div>
         <p className={styles.label}>404 / Page not found</p>
         <h1>This page wandered off.</h1>
-        <p className={styles.description}>The link may have changed, or the page may have moved.</p>
+        <p className={styles.description}>The dot made it. The page didn’t.</p>
         <nav className={styles.actions} aria-label="Find your way back">
           <a className={styles.home} href="/">Back home <span aria-hidden="true">↗</span></a>
           <a href="/#work">View my work</a>
