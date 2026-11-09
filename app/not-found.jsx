@@ -21,7 +21,7 @@ export default function NotFound() {
         </div>
         <p className={styles.label}>404 / Page not found</p>
         <h1>We couldn’t find that page.</h1>
-        <p className={styles.description}>The dot is on the case. Its search radius is limited.</p>
+        <p className={styles.description}>The dot is looking for it. It hasn’t left the zero.</p>
         <nav className={styles.actions} aria-label="Find your way back">
           <a className={styles.home} href="/">Back home <span aria-hidden="true">↗</span></a>
           <a href="/#work">View my work</a>
