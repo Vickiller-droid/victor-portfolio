@@ -20,8 +20,8 @@ export default function NotFound() {
           <span>4</span><span className={styles.zero}>0<i className={styles.dot}/></span><span>4</span>
         </div>
         <p className={styles.label}>404 / Page not found</p>
-        <h1>We couldn’t find that page.</h1>
-        <p className={styles.description}>The dot is looking for it. It hasn’t left the zero.</p>
+        <h1>Well, this is embarrassing.</h1>
+        <p className={styles.description}>We could’ve sworn this page was here five minutes ago. Clearly, it had other plans.</p>
         <nav className={styles.actions} aria-label="Find your way back">
           <a className={styles.home} href="/">Back home <span aria-hidden="true">↗</span></a>
           <a href="/#work">View my work</a>
