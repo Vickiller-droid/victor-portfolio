@@ -1,5 +1,6 @@
 
 import "./globals.css";
+import OfflineSetup from "./OfflineSetup";
 
 export const metadata = {
   icons: { icon: "/rounded-v.svg", shortcut: "/rounded-v.svg" },
@@ -10,7 +11,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><OfflineSetup/>{children}</body>
     </html>
   );
 }

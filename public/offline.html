@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>You’re offline | Victor Alabi</title>
+<script>
+  try {
+    const theme = localStorage.getItem("victor-portfolio-theme");
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  } catch {}
+</script>
+<style>
+  :root { color-scheme:light; --paper:#f6f3ee; --ink:#292622; --muted:#6d665e; --accent:#a4472c; --line:#dcd3c8 }
+  :root[data-theme=dark] { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme]) { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
+  }
+  * { box-sizing:border-box }
+  body { margin:0; padding:0 clamp(20px,7vw,112px); min-height:100vh; min-height:100svh; display:grid; grid-template-rows:auto 1fr; background:var(--paper); color:var(--ink); font-family:system-ui,sans-serif }
+  header { padding:22px 0; border-bottom:1px solid var(--line); font-weight:700; letter-spacing:-.045em }
+  header span { color:var(--accent) }
+  main { align-self:center; text-align:center; padding:40px 0 70px }
+  .signal { width:92px; height:92px; margin:0 auto 16px; display:grid; place-items:center; position:relative; color:var(--accent) }
+  .signal::before { content:""; width:14px; height:14px; border-radius:50%; background:currentColor }
+  .signal::after { content:""; position:absolute; width:50px; height:50px; border:1px solid; border-radius:50%; opacity:.4; animation:ripple 1.6s ease-out .4s both }
+  @keyframes ripple { from { transform:scale(.3); opacity:.8 } to { transform:scale(1); opacity:.4 } }
+  @media (prefers-reduced-motion:reduce) { .signal::after { animation:none } }
+  h1 { font:500 clamp(2.5rem,8vw,4.5rem)/1 Georgia,serif; margin:0 }
+  p { color:var(--muted); margin:14px 0 24px }
+  button { min-height:44px; border:0; border-radius:6px; padding:0 18px; background:#a4472c; color:#fff; font:600 1rem system-ui,sans-serif; cursor:pointer }
+  button:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
+</style>
+<header>victoralabi<span>.</span></header>
+<main>
+  <div class="signal" aria-hidden="true"></div>
+  <h1>You’re offline.</h1>
+  <p>Check your connection, then give it another go.</p>
+  <button type="button" onclick="location.reload()">Try again</button>
+</main>
+</html>
