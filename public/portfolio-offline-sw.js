@@ -1,4 +1,4 @@
-const CACHE = "victor-portfolio-offline-v1";
+const CACHE = "victor-portfolio-offline-v2";
 const OFFLINE = "/offline.html";
 
 self.addEventListener("install", event => {
