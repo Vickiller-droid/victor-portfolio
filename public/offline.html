@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>You’re offline | Victor Alabi</title>
+<title>You're offline | Victor Alabi</title>
 <script>
   try {
     const theme = localStorage.getItem("victor-portfolio-theme");
@@ -17,25 +18,52 @@
     :root:not([data-theme]) { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
   }
   * { box-sizing:border-box }
-  body { margin:0; padding:0 clamp(20px,7vw,112px); min-height:100vh; min-height:100svh; display:grid; grid-template-rows:auto 1fr; background:var(--paper); color:var(--ink); font-family:system-ui,sans-serif }
-  header { padding:22px 0; border-bottom:1px solid var(--line); font-weight:700; letter-spacing:-.045em }
+  body { margin:0; min-height:100vh; min-height:100svh; padding:0 clamp(20px,7vw,112px); display:grid; grid-template-rows:auto 1fr auto; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,sans-serif }
+  header { padding:22px 0; border-bottom:1px solid var(--line); font-weight:750; letter-spacing:-.045em }
   header span { color:var(--accent) }
-  main { align-self:center; text-align:center; padding:40px 0 70px }
-  .signal { width:92px; height:92px; margin:0 auto 16px; display:grid; place-items:center; position:relative; color:var(--accent) }
-  .signal::before { content:""; width:14px; height:14px; border-radius:50%; background:currentColor }
-  .signal::after { content:""; position:absolute; width:50px; height:50px; border:1px solid; border-radius:50%; opacity:.4; animation:ripple 1.6s ease-out .4s both }
-  @keyframes ripple { from { transform:scale(.3); opacity:.8 } to { transform:scale(1); opacity:.4 } }
-  @media (prefers-reduced-motion:reduce) { .signal::after { animation:none } }
-  h1 { font:500 clamp(2.5rem,8vw,4.5rem)/1 Georgia,serif; margin:0 }
-  p { color:var(--muted); margin:14px 0 24px }
-  button { min-height:44px; border:0; border-radius:6px; padding:0 18px; background:#a4472c; color:#fff; font:600 1rem system-ui,sans-serif; cursor:pointer }
+  main { align-self:center; width:100%; max-width:680px; margin:auto; text-align:center; padding:48px 0 }
+  .scene { width:min(100%,490px); margin:0 auto 28px; color:var(--ink) }
+  .scene svg { display:block; width:100%; height:auto; shape-rendering:crispEdges }
+  .scene .accent { fill:var(--accent) }
+  .scene .ink { fill:currentColor }
+  .scene .ground { stroke:currentColor; stroke-width:2; stroke-dasharray:48 8 5 14; opacity:.58 }
+  .scene .cloud { stroke:currentColor; stroke-width:2; fill:none; opacity:.42 }
+  h1 { font:500 clamp(2.5rem,8vw,4.5rem)/1.06 Georgia,serif; letter-spacing:-.045em; margin:0 }
+  p { color:var(--muted); max-width:430px; margin:16px auto 25px; line-height:1.6 }
+  button { min-height:46px; border:0; border-radius:6px; padding:0 22px; background:#a4472c; color:#fff; font:600 1rem system-ui,sans-serif; cursor:pointer }
+  button:hover { filter:brightness(1.08) }
   button:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
+  .status { margin-top:18px; color:var(--muted); font-size:.78rem; letter-spacing:.08em; text-transform:uppercase }
+  footer { border-top:1px solid var(--line); padding:17px 0; color:var(--muted); font-size:.78rem }
+  @media (prefers-reduced-motion:no-preference) { .dino { animation:bob 2.2s ease-in-out infinite } @keyframes bob { 50% { transform:translateY(-3px) } } }
 </style>
+</head>
+<body>
 <header>victoralabi<span>.</span></header>
 <main>
-  <div class="signal" aria-hidden="true"></div>
-  <h1>No signal. Still looking good.</h1>
-  <p>Unfortunately, this page runs on internet, not compliments.</p>
+  <div class="scene" aria-hidden="true">
+    <svg viewBox="0 0 490 210" xmlns="http://www.w3.org/2000/svg">
+      <path class="cloud" d="M52 54h14V44h12V34h20v10h14v10h24 M350 43h16V31h14V21h24v10h14v12h22"/>
+      <g class="dino ink" transform="translate(151 48)">
+        <path d="M32 0h62v12h12v42H82v12H64v24H48v15H34V90H20V78H8V66H0V42h12v12h12V30h8z"/>
+        <path d="M32 89h13v34H32zM63 89h13v34H63z"/>
+        <path d="M6 78H-6V66h-12V54h-10v34h12v12H4z"/>
+        <rect x="77" y="14" width="8" height="8" fill="var(--paper)"/>
+        <rect x="87" y="41" width="19" height="7" fill="var(--paper)"/>
+      </g>
+      <g class="accent">
+        <rect x="325" y="107" width="9" height="51"/><rect x="316" y="128" width="9" height="9"/><rect x="308" y="113" width="9" height="16"/><rect x="334" y="119" width="9" height="10"/><rect x="343" y="108" width="9" height="12"/>
+        <rect x="91" y="145" width="5" height="12"/><rect x="85" y="149" width="5" height="5"/>
+      </g>
+      <path class="ground" d="M25 171H465"/>
+      <g class="ink"><rect x="260" y="166" width="5" height="4"/><rect x="287" y="179" width="10" height="3"/><rect x="404" y="165" width="7" height="4"/><rect x="120" y="178" width="8" height="3"/></g>
+    </svg>
+  </div>
+  <h1>Looks like we've lost connection.</h1>
+  <p>The internet took a detour. Check your connection and try again to get back to the portfolio.</p>
   <button type="button" onclick="location.reload()">Try again</button>
+  <div class="status" role="status">Offline · Waiting for connection</div>
 </main>
+<footer>Victor Alabi · Built for the web, even when the web takes a break.</footer>
+</body>
 </html>
