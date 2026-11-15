@@ -14,9 +14,6 @@
 <style>
   :root { color-scheme:light; --paper:#f6f3ee; --ink:#292622; --muted:#6d665e; --accent:#a4472c; --line:#dcd3c8 }
   :root[data-theme=dark] { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
-  @media (prefers-color-scheme:dark) {
-    :root:not([data-theme]) { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
-  }
   * { box-sizing:border-box }
   body { margin:0; min-height:100vh; min-height:100svh; padding:0 clamp(20px,7vw,112px); display:grid; grid-template-rows:auto 1fr; background:var(--paper); color:var(--ink); font-family:"DM Sans",system-ui,-apple-system,sans-serif }
   header { padding:22px 0; border-bottom:1px solid var(--line); font-weight:750; letter-spacing:-.045em }
