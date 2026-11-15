@@ -16,7 +16,7 @@ import {
 
 
 
-const boothyDescription = "Boothy reminds you to take your things before you step out of a cab, bus or keke.";
+const boothyDescription = "Boothy reminds you to take your things before you step out of a cab, bus or tricycle.";
 const boothyStory = "When you’re paying the driver, gathering your bags or rushing off, it’s easy to overlook something. I’ve left things behind before, so I’m building it to help you avoid the same.";
 
 const projects = [
