@@ -18,23 +18,25 @@
     :root:not([data-theme]) { color-scheme:dark; --paper:#211f1c; --ink:#f4efe8; --muted:#b7ada1; --accent:#ec9c7c; --line:#494139 }
   }
   * { box-sizing:border-box }
-  body { margin:0; min-height:100vh; min-height:100svh; padding:0 clamp(20px,7vw,112px); display:grid; grid-template-rows:auto 1fr; background:var(--paper); color:var(--ink); font-family:system-ui,-apple-system,sans-serif }
+  body { margin:0; min-height:100vh; min-height:100svh; padding:0 clamp(20px,7vw,112px); display:grid; grid-template-rows:auto 1fr; background:var(--paper); color:var(--ink); font-family:"DM Sans",system-ui,-apple-system,sans-serif }
   header { padding:22px 0; border-bottom:1px solid var(--line); font-weight:750; letter-spacing:-.045em }
   header span { color:var(--accent) }
-  main { align-self:center; width:100%; max-width:560px; margin:auto; text-align:center; padding:32px 0 44px }
-  .scene { width:min(100%,400px); margin:0 auto 28px; color:var(--ink) }
+  main { align-self:center; width:100%; max-width:560px; margin:auto; text-align:center; padding:24px 0 34px }
+  .scene { width:min(100%,380px); margin:0 auto 20px; color:var(--ink) }
   .scene svg { display:block; width:100%; height:auto; shape-rendering:crispEdges }
   .scene .accent { fill:var(--accent) }
   .scene .ink { fill:currentColor }
   .scene .ground { stroke:currentColor; stroke-width:2; stroke-dasharray:48 8 5 14; opacity:.58 }
   .scene .cloud { stroke:currentColor; stroke-width:2; fill:none; opacity:.42 }
-  h1 { font:600 clamp(1.65rem,5.4vw,2.65rem)/1.18 system-ui,-apple-system,sans-serif; letter-spacing:-.045em; margin:0 auto; max-width:510px; text-wrap:balance }
-  p { color:var(--muted); max-width:390px; margin:13px auto 23px; font-size:clamp(.9rem,2.8vw,1rem); line-height:1.55; text-wrap:pretty }
-  button { min-height:42px; border:0; border-radius:6px; padding:0 20px; background:#a4472c; color:#fff; font:600 .9rem system-ui,sans-serif; cursor:pointer }
+  h1 { font:500 clamp(1.75rem,5.8vw,2.45rem)/1.14 "Newsreader",Georgia,serif; letter-spacing:-.035em; margin:0 auto; max-width:510px; text-wrap:balance }
+  p { color:var(--muted); max-width:360px; margin:12px auto 20px; font-size:clamp(.9rem,2.8vw,1rem); line-height:1.55; text-wrap:pretty }
+  button { min-height:42px; border:0; border-radius:6px; padding:0 20px; background:#a4472c; color:#fff; font:600 .9rem "DM Sans",system-ui,sans-serif; cursor:pointer }
   button:hover { filter:brightness(1.08) }
   button:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
-  .status { margin-top:17px; color:var(--muted); font-size:.68rem; letter-spacing:.07em; text-transform:uppercase }
+  .status { margin-top:15px; color:var(--muted); font-size:.68rem; letter-spacing:.07em; text-transform:uppercase }
   @media (prefers-reduced-motion:no-preference) { .dino { animation:bob 2.2s ease-in-out infinite } @keyframes bob { 50% { transform:translateY(-3px) } } }
+  @media (max-width:420px) { header { padding:18px 0 } main { padding:18px 0 28px } .scene { width:min(100%,330px); margin-bottom:18px } h1 { max-width:330px; font-size:clamp(1.7rem,7.4vw,2rem) } p { max-width:320px; font-size:.9rem } }
+  @media (max-height:700px) { main { padding:12px 0 20px } .scene { width:min(100%,280px); margin-bottom:12px } }
 </style>
 </head>
 <body>
