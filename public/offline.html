@@ -20,22 +20,22 @@
   .offline-label { display:flex; align-items:center; gap:6px; font:500 .7rem "DM Sans",system-ui,sans-serif; letter-spacing:.06em; color:var(--muted) }
   .offline-label svg { width:14px; height:14px; stroke:var(--accent); fill:none; stroke-width:2; stroke-linecap:round }
   header span { color:var(--accent) }
-  main { align-self:center; width:100%; max-width:460px; margin:auto; text-align:center; padding:20px 0 30px }
-  .scene { width:min(100%,300px); margin:0 auto 20px; color:var(--ink) }
+  main { align-self:center; width:100%; max-width:390px; margin:auto; text-align:center; padding:20px 0 30px }
+  .scene { width:min(100%,245px); margin:0 auto 12px; color:var(--ink) }
   .scene svg { display:block; width:100%; height:auto; shape-rendering:crispEdges }
   .scene .accent { fill:var(--accent) }
   .scene .ink { fill:currentColor }
   .scene .ground { stroke:currentColor; stroke-width:2; stroke-dasharray:48 8 5 14; opacity:.58 }
   .scene .cloud { stroke:currentColor; stroke-width:2; fill:none; opacity:.42 }
-  h1 { font:600 clamp(1.55rem,5.2vw,2rem)/1.2 "DM Sans",system-ui,-apple-system,sans-serif; letter-spacing:-.035em; margin:0 auto; max-width:420px; text-wrap:balance }
-  p { color:var(--muted); max-width:330px; margin:12px auto 22px; font-size:clamp(.88rem,2.8vw,.98rem); line-height:1.55; text-wrap:pretty }
-  button { min-height:42px; border:0; border-radius:6px; padding:0 20px; background:#a4472c; color:#fff; font:600 .9rem "DM Sans",system-ui,sans-serif; cursor:pointer }
+  h1 { font:600 clamp(1.35rem,4.6vw,1.7rem)/1.24 "DM Sans",system-ui,-apple-system,sans-serif; letter-spacing:-.035em; margin:0 auto; max-width:360px; text-wrap:balance }
+  p { color:var(--muted); max-width:290px; margin:9px auto 17px; font-size:clamp(.82rem,2.6vw,.9rem); line-height:1.55; text-wrap:pretty }
+  button { min-height:38px; border:0; border-radius:6px; padding:0 17px; background:#a4472c; color:#fff; font:600 .82rem "DM Sans",system-ui,sans-serif; cursor:pointer }
   button:hover { filter:brightness(1.08) }
   button:focus-visible { outline:2px solid var(--accent); outline-offset:4px }
-  .status { margin-top:15px; color:var(--muted); font-size:.65rem; letter-spacing:.07em; text-transform:uppercase }
+  .status { margin-top:12px; color:var(--muted); font-size:.65rem; letter-spacing:.07em; text-transform:uppercase }
   @media (prefers-reduced-motion:no-preference) { .dino { animation:bob 2.2s ease-in-out infinite } @keyframes bob { 50% { transform:translateY(-3px) } } }
-  @media (max-width:420px) { header { padding:18px 0 } main { padding:18px 0 28px } .scene { width:min(100%,290px); margin-bottom:18px } h1 { max-width:330px; font-size:clamp(1.5rem,6.4vw,1.85rem) } p { max-width:300px; font-size:.88rem } }
-  @media (max-height:700px) { main { padding:12px 0 20px } .scene { width:min(100%,280px); margin-bottom:12px } }
+  @media (max-width:420px) { header { padding:18px 0 } main { padding:18px 0 28px } .scene { width:min(100%,235px); margin-bottom:12px } h1 { max-width:330px; font-size:clamp(1.3rem,5.7vw,1.55rem) } p { max-width:280px; font-size:.82rem } }
+  @media (max-height:700px) { main { padding:12px 0 20px } .scene { width:min(100%,220px); margin-bottom:10px } }
 </style>
 </head>
 <body>
