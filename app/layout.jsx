@@ -10,7 +10,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: `try { var saved = localStorage.getItem("victor-portfolio-theme"); if (saved === "dark" || saved === "light") document.documentElement.dataset.theme = saved; } catch (e) {}` }} /></head>
       <body><OfflineSetup/>{children}</body>
     </html>
   );

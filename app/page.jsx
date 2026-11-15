@@ -36,7 +36,7 @@ const projects = [
 export default function HomePage() {
 
   const cursorRef = useRef(null);
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState(null);
 
   const [expandedProject, setExpandedProject] = useState(null);
 
@@ -171,6 +171,7 @@ entry.target.classList.add("isVisible");
 
     setTheme(next);
 
+    document.documentElement.dataset.theme = next;
     document.body.classList.toggle("dark", next === "dark");
 
     try { localStorage.setItem("victor-portfolio-theme", next); } catch {}
@@ -181,6 +182,8 @@ entry.target.classList.add("isVisible");
 
   useEffect(() => {
 
+    if (theme !== "dark" && theme !== "light") return;
+    document.documentElement.dataset.theme = theme;
     document.body.classList.toggle("dark", theme === "dark");
 
   }, [theme]);
@@ -197,7 +200,7 @@ entry.target.classList.add("isVisible");
 
         <a className="wordmark" href="#top" aria-label="Victor Alabi, home">victoralabi<span>.</span></a>
 
-        <PortfolioNavigation theme={theme} chooseTheme={chooseTheme}/>
+        <PortfolioNavigation theme={theme ?? "light"} chooseTheme={chooseTheme}/>
 
       </header>
 
