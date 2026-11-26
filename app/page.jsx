@@ -10,7 +10,8 @@ import {
 
   ArrowDownRight, ArrowUpRight, Sun, Moon, Code2, Terminal, Shapes,
 
-  Lightbulb, BookOpen, Github, Mail, ArrowRight, CheckCircle2, X, LoaderCircle
+  Lightbulb, BookOpen, Github, Mail, ArrowRight, CheckCircle2, X, LoaderCircle,
+  Instagram, Facebook, Linkedin
 
 } from "lucide-react";
 
@@ -383,6 +384,14 @@ entry.target.classList.add("isVisible");
         <div className="revealOnScroll"><p className="eyebrow">HAVE SOMETHING IN MIND? <span className="headingIndex">/ 04</span></p><h2>Let’s make it useful.</h2><p className="footerSub">For projects, collaboration, or a good technical conversation.</p></div>
 
         <div className="contactActions"><a className="primaryButton" href="mailto:alabivictordaniel@gmail.com"><Mail size={17}/> Email me <ArrowUpRight size={17}/></a><a className="contactGithub" href="https://github.com/vickiller-droid" target="_blank" rel="noreferrer"><Github size={17}/> GitHub <ArrowUpRight size={16}/></a></div>
+
+        <nav className="socialLinks" aria-label="Social profiles">
+          <a className="socialLink" href="https://github.com/Vickiller-droid" target="_blank" rel="noreferrer"><Github size={17} aria-hidden="true"/><span>GitHub</span><ArrowUpRight size={13} aria-hidden="true"/></a>
+          <a className="socialLink" href="https://www.linkedin.com/in/victor-alabi-b20973393/" target="_blank" rel="noreferrer"><Linkedin size={17} aria-hidden="true"/><span>LinkedIn</span><ArrowUpRight size={13} aria-hidden="true"/></a>
+          <a className="socialLink" href="https://instagram.com/alabi_victor_daniel" target="_blank" rel="noreferrer"><Instagram size={17} aria-hidden="true"/><span>Instagram</span><ArrowUpRight size={13} aria-hidden="true"/></a>
+          <a className="socialLink" href="https://www.facebook.com/profile.php?id=61581924488015" target="_blank" rel="noreferrer"><Facebook size={17} aria-hidden="true"/><span>Facebook</span><ArrowUpRight size={13} aria-hidden="true"/></a>
+          <a className="socialLink" href="https://x.com/Vickillerdroid" target="_blank" rel="noreferrer"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19 9.457 12.504h-7.406l-5.8-7.584-6.64 7.584H.47l8.6-9.83L0 1.153h7.594l5.242 6.932 6.065-6.932zm-1.291 19.49h2.039L6.486 3.24H4.298L17.61 20.643z"/></svg><span>X</span><ArrowUpRight size={13} aria-hidden="true"/></a>
+        </nav>
 
         <div className="footerBottom"><a className="wordmark" href="#top">victoralabi<span>.</span></a><p>Made with intention. © {new Date().getFullYear()}</p><a href="#top" className="backTop">Back to top ↑</a></div>
 

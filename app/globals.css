@@ -269,3 +269,14 @@ body.dark .portfolioShapes{color:rgba(234,148,113,.32)}
   .footerBottom{grid-template-columns:1fr 1fr}
   .footerBottom>p{grid-column:1/-1}
 }
+
+
+/* Social profiles: quiet inline links with restrained hover feedback. */
+.socialLinks{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:clamp(16px,2.6vw,30px);margin-top:-3px}
+.socialLink{display:inline-flex;align-items:center;gap:8px;min-height:36px;color:var(--muted-foreground);font-size:.8rem;text-decoration:none;transition:color 160ms ease,transform 160ms ease}
+.socialLink svg:last-child{opacity:.55;transition:opacity 160ms ease,transform 160ms ease}
+.socialLink:hover{color:var(--primary);transform:translateY(-2px)}
+.socialLink:hover svg:last-child{opacity:1;transform:translate(2px,-2px)}
+.socialLink:focus-visible{outline:2px solid var(--primary);outline-offset:4px;border-radius:3px}
+@media(max-width:760px){.socialLinks{gap:12px 20px;margin-top:0}.socialLink{min-height:40px;font-size:.82rem}}
+@media(prefers-reduced-motion:reduce){.socialLink,.socialLink svg:last-child{transition:none}.socialLink:hover{transform:none}}
